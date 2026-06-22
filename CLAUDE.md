@@ -65,6 +65,7 @@
 - **伏笔表格式完整**：pre-commit 检查 `04_伏笔/伏笔登记表.md` 的 markdown 表格结构完整性（列数一致、状态字段合法值）。
 - **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
 - **人物卡更新提醒**：提交正文/上下文包时，pre-commit 扫描在场角色，若其人物卡未被同期修改 → 打印提醒（不阻断，确认无误后可直接提交）。
+- **章节校验（就绪自检 + 时空一致性）**：`python scripts/check_chapters.py --staged` — 提交正文时强制：(a) 世界观/大纲/人物非空；(b) characters_present 引用的角色都存在；(c) status=dead 的角色不出场；(d) 同一 in_world_date 下角色不出现于两个地点。
 
 **流程强制 — 完工清单兜底**（无脚本强制，但必须在完工检查清单逐项确认）：
 
@@ -130,6 +131,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 - `python scripts/audit.py check` — 断链 / STRUCTURE 完整性 / AGENTS.md 行数 / 同步
 - `python scripts/check_foreshadowing.py` — 伏笔 open/closed 状态 + 超期检测
 - `python scripts/relationship.py check` — 关系数据与角色文件一致性
+- `python scripts/check_chapters.py` — 章节时空一致性（死角色复活/同时两地/就绪自检）
 - （角色出勤 / 时间线校验脚本待实现）
 
 **语义层（复盘 converge）**——详见 `05_复盘/reviewer-protocol.md` 的本地协议。核心流程：
@@ -147,6 +149,38 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 详见 [docs/writing-style.md](docs/writing-style.md)。简述：
 - 视角、时态、文风倾向已在该文档定义
 - 端木灵星技法（矛盾冲突五路径、开篇三章强化主角、章末钩子、伏笔快速回收）作为 reviewer rubric 的"好看"可操作抓手
+
+## ## 文件格式约定
+
+### 人物卡 frontmatter
+
+每个 `02_人物/<角色名>.md` 必须包含：
+```yaml
+---
+status: alive        # alive|dead|departed|unknown
+role: protagonist    # protagonist|antagonist|deuteragonist|supporting|minor
+age: 
+faction: 
+first_appearance:    # 卷/章
+---
+```
+
+### 章节 frontmatter
+
+每章 `03_正文/第N卷/第M章.md` 必须包含：
+```yaml
+---
+model: deepseek-v4
+generated_at: 2026-06-23T10:00:00Z
+volume: 1
+chapter: 3
+characters_present: ["沈照影", "顾寒枝"]
+location: "映月湖"
+in_world_date: "大业三年·霜月·初七"
+word_count: 3240
+status: draft
+---
+```
 
 ## 提交规范
 

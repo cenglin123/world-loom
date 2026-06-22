@@ -79,5 +79,19 @@ if [ -n "$CONTEXT_FILES" ]; then
     echo "[pre-commit] character update reminder ok"
 fi
 
+# —— 5. 章节就绪自检 + 时空一致性（P0） ——
+CHAPTER_STAGED=$(echo "$STAGED" | grep -E "^03_正文/.*第.*章\.md$" || true)
+if [ -n "$CHAPTER_STAGED" ] || echo "$STAGED" | grep -qE "^03_正文/"; then
+    python scripts/check_chapters.py --staged || {
+        echo ""
+        echo "============================================"
+        echo "章节校验失败（就绪自检/时空一致性）。"
+        echo "  python scripts/check_chapters.py --readiness   # 仅就绪自检"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] chapters ok"
+fi
+
 echo "[pre-commit] all checks passed"
 exit 0
