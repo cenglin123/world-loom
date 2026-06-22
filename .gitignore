@@ -1,0 +1,12 @@
+# Obsidian internal config (not version-controlled in this project)
+.obsidian/
+.obsidian_img_files/
+.trash/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc

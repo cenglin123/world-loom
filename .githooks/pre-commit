@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -e
+# novel_world_one — pre-commit hook
+# 任务：(1) AGENTS.md/CLAUDE.md/GEMINI.md 同步一致性
+#       (2) 伏笔登记表格式完整性（可选，预留）
+
+python scripts/agent_links.py check || {
+    echo ""
+    echo "============================================"
+    echo "AGENTS.md / CLAUDE.md / GEMINI.md 内容不一致。"
+    echo "正确流程：仅编辑 AGENTS.md，运行:"
+    echo "  python scripts/agent_links.py repair"
+    echo "============================================"
+    exit 1
+}
+
+echo "[pre-commit] agent links ok"
+exit 0
