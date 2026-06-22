@@ -16,7 +16,7 @@ python scripts/agent_links.py check || {
 
 # —— 2. 伏笔登记表格式完整性 ——
 STAGED=$(git diff --cached --name-only)
-if echo "$STAGED" | grep -qF "伏笔/伏笔登记表.md"; then
+if echo "$STAGED" | grep -qF "04_伏笔/伏笔登记表.md"; then
     python scripts/check_foreshadowing.py || {
         echo ""
         echo "============================================"

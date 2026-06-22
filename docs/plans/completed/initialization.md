@@ -27,15 +27,15 @@
 - scripts/（changelog.py / agent_links.py / audit.py，取自 init-agent-docs assets）
 - .githooks/pre-commit
 - docs/（CURRENT / overview / writing-style / pitfalls / audit-checklist / plans/）
-- 世界观/（核心设定 / 外围设定）
-- 大纲/（主线）
-- 人物/（_索引 + 三份模板）
-- 正文/（README）
-- 伏笔/（登记表）
-- 复盘/（README + 模板）
+- 00_世界观/（核心设定 / 外围设定）
+- 01_大纲/（主线）
+- 02_人物/（_索引 + 三份模板）
+- 03_正文/（README）
+- 04_伏笔/（登记表）
+- 05_复盘/（README + 模板）
 
 ## 初始化自检结果
 
 - sync check: pass
-- audit check: 预期 directory-link 告警（正文/ 复盘/ 等为目录非文件，audit.py 按代码项目设计，不影响小说项目使用）。AGENTS.md 129 行/437 词（接近限，但小说项目需要嵌入四阶段工作流操作协议）。
+- audit check: 预期 directory-link 告警（03_正文/ 05_复盘/ 等为目录非文件，audit.py 按代码项目设计，不影响小说项目使用）。AGENTS.md 129 行/437 词（接近限，但小说项目需要嵌入四阶段工作流操作协议）。
 - 初始化未触达的步骤：小型项目省略记忆系统（不建 .agent/memory/），init-agent-docs 设计哲学第 8 步 reviewer-perspective 自检——当前仅主 agent 执行初始化，未做 subagent blind read 验证（待后续任务中补）。

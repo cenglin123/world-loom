@@ -12,7 +12,7 @@ import re
 import sys
 from pathlib import Path
 
-CLUE_FILE = Path(__file__).resolve().parent.parent / "伏笔" / "伏笔登记表.md"
+CLUE_FILE = Path(__file__).resolve().parent.parent / "04_伏笔" / "伏笔登记表.md"
 OPEN_STALE_CHAPTERS = 20  # open 超过 N 章未收 → 报警
 USED_STALE_CHAPTERS = 15  # open 超过 M 章从未被提及 → 提示尽快用掉
 
@@ -104,8 +104,8 @@ def main() -> int:
     return min(issues, 1)
 
 def _find_last_chapter() -> int | None:
-    """扫描 正文/ 目录找最后写入的章节。"""
-    text_dir = CLUE_FILE.parent.parent / "正文"
+    """扫描 03_正文/ 目录找最后写入的章节。"""
+    text_dir = CLUE_FILE.parent.parent / "03_正文"
     if not text_dir.exists():
         return None
     chapters = sorted(text_dir.glob("第*卷/*.md"))
