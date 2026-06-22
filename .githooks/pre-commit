@@ -27,5 +27,19 @@ if echo "$STAGED" | grep -qF "04_伏笔/伏笔登记表.md"; then
     echo "[pre-commit] foreshadowing table ok"
 fi
 
+# —— 3. 关系数据完整性 ——
+if echo "$STAGED" | grep -qE "(02_人物/relationships.json|02_人物/.*\.md)"; then
+    python scripts/relationship.py check || {
+        echo ""
+        echo "============================================"
+        echo "关系数据不一致，请修正后重新提交。"
+        echo "  python scripts/relationship.py check   # 查看详情"
+        echo "  python scripts/relationship.py list    # 列出所有关系"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] relationships ok"
+fi
+
 echo "[pre-commit] all checks passed"
 exit 0

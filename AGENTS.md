@@ -41,7 +41,7 @@
 | 世界观·硬核心（locked，改需治理审批） | [00_世界观/核心设定.md](00_世界观/核心设定.md) |
 | 世界观·外围（可扩展） | [00_世界观/外围设定.md](00_世界观/外围设定.md) |
 | 故事大纲（主线 + 分卷） | [01_大纲/主线.md](01_大纲/主线.md) |
-| 人物（人设 / 记忆 / 关系三层框架） | [02_人物/_索引.md](02_人物/_索引.md) |
+| 人物（人设 / 记忆 / 关系三层框架） | [02_人物/_索引.md](02_人物/_索引.md) + 关系数据源 [02_人物/relationships.json](02_人物/relationships.json) |
 | 伏笔登记（open/closed 状态机） | [04_伏笔/伏笔登记表.md](04_伏笔/伏笔登记表.md) |
 | 正文章节 | [03_正文/README.md](03_正文/README.md) |
 | 阶段性复盘记录 + converge 协议 | [05_复盘/README.md](05_复盘/README.md) → [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md) |
@@ -63,6 +63,7 @@
 - **AGENTS.md 同步**：`CLAUDE.md` / `GEMINI.md` 必须与 `AGENTS.md` 内容一致。编辑后跑 `python scripts/agent_links.py repair`，pre-commit hook 强制检查。
 - **治理文档修改保护**：`.githooks/commit-msg` 检查以下治理文件是否被修改——`AGENTS.md`、`00_世界观/核心设定.md`、`.githooks/pre-commit`、`.githooks/commit-msg`、`STRUCTURE.md`、`docs/audit-checklist.md`、`05_复盘/reviewer-protocol.md`。若修改且 commit message 不含 `[governance]` 标记，提交被**拒绝**。治理文档的完整清单与保护细则见 `.githooks/commit-msg`。
 - **伏笔表格式完整**：pre-commit 检查 `04_伏笔/伏笔登记表.md` 的 markdown 表格结构完整性（列数一致、状态字段合法值）。
+- **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
 
 **流程强制 — 完工清单兜底**（无脚本强制，但必须在完工检查清单逐项确认）：
 
@@ -70,6 +71,7 @@
 - **人设内核不可轻改**：核心欲望/核心恐惧/底线/应激模式是行为边界。修改需标注触发事件 + 走 reviewer 验证 + 完工清单确认。
 - **伏笔必须登记**：新伏笔 → `04_伏笔/伏笔登记表.md` 登记（状态=open），回收后 → closed。不登记 = 不存在 = 收不回来。完工清单逐章确认。
 - **人物记忆必须回写**：每卷/关键场景后，受影响角色的 `02_人物/<角色名>.md` 记忆段必须更新。完工清单逐卷确认（漏回写的记忆漂移在复盘 converge 中由 reviewer 检查）。
+- **关系数据必须同步**：角色之间有意义的互动发生后，用 `python scripts/relationship.py set/update` 写入 `02_人物/relationships.json`。卷末跑 `regenerate` 重建 _索引.md 矩阵视图。pre-commit 强制校验数据完整性。
 - **完工必检**：任务完成后必须执行末尾"完工检查清单"，不可跳过。
 
 ### 默认偏好
@@ -126,6 +128,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 **机械层**（脚本自动执行）：
 - `python scripts/audit.py check` — 断链 / STRUCTURE 完整性 / AGENTS.md 行数 / 同步
 - `python scripts/check_foreshadowing.py` — 伏笔 open/closed 状态 + 超期检测
+- `python scripts/relationship.py check` — 关系数据与角色文件一致性
 - （角色出勤 / 时间线校验脚本待实现）
 
 **语义层（复盘 converge）**——详见 `05_复盘/reviewer-protocol.md` 的本地协议。核心流程：
@@ -166,6 +169,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 
 - [ ] **正文一致性**：本场/本卷是否有漂移——人设违反、记忆矛盾、关系混乱、世界观冲突？走写后审或复盘 converge。
 - [ ] **人物记忆回写**：受影响角色的 `02_人物/<角色名>.md` 记忆段是否已更新？L2 新条目是否正确？
+- [ ] **关系数据同步**：`python scripts/relationship.py check` 是否通过？有互动的角色对是否已用 `set`/`update` 写入 `02_人物/relationships.json`？完成后跑 `python scripts/relationship.py regenerate` 重建矩阵视图。
 - [ ] **伏笔登记**：埋了新伏笔？`04_伏笔/伏笔登记表.md` 已录入。收了旧伏笔？状态已改 closed。
 - [ ] **CHANGELOG**：是否值得记录？用 `python scripts/changelog.py add ...` 追加。
 - [ ] **同步一致性**：本文件若被编辑，跑 `python scripts/agent_links.py repair`。
