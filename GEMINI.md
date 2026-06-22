@@ -5,7 +5,9 @@
 
 ## 项目概述
 
-一部正在创作中的长篇小说。Agent 的角色是**受托的执行者 + 质量守护者**——按四阶段工作流推进剧情，用宪法审查 + 迭代收敛防止漂移（吃书）。
+一部正在创作中的长篇小说。Agent 的角色是**受托的执行者 + 质量守护者**——按四阶段工作流推进剧情，用宪法审查 + converge 迭代收敛防止漂移（吃书）。
+
+**默认治理工具**：本仓库以 converge 迭代收敛作为质量控制的默认机制。converge 的本地实现见 [[05_复盘/reviewer-protocol]]，reviewer 启动模板见 [[05_复盘/reviewer-prompt-template]]。所有涉及多轮审查、收敛判定、阻断分类的流程均走这套协议，不依赖外部 SKILL。
 
 不可改动的硬设定在 `00_世界观/核心设定.md`，任何人（含 agent 和用户）要改都必须走多轮独立评审。
 
@@ -44,7 +46,7 @@
 | 人物（人设 / 记忆 / 关系三层框架） | [02_人物/_索引.md](02_人物/_索引.md) + 关系数据源 [02_人物/relationships.json](02_人物/relationships.json) |
 | 伏笔登记（open/closed 状态机） | [04_伏笔/伏笔登记表.md](04_伏笔/伏笔登记表.md) |
 | 正文章节 | [03_正文/README.md](03_正文/README.md) |
-| 阶段性复盘记录 + converge 协议 | [05_复盘/README.md](05_复盘/README.md) → [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md) |
+| 阶段性复盘 + converge 协议 + reviewer 模板 | [05_复盘/README.md](05_复盘/README.md) → [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md) → [05_复盘/reviewer-prompt-template.md](05_复盘/reviewer-prompt-template.md) |
 | 本方法论依据 | 四阶段工作流（见下方"四阶段工作流"节），融合 converge 迭代收敛质量控制 + 端木灵星传统写作技法 + 业界 AI 长篇写作实践 |
 
 ## 行为规则
@@ -61,7 +63,7 @@
 **已脚本化 — 有机执行**（绕过会被 pre-commit 拒绝）：
 
 - **AGENTS.md 同步**：`CLAUDE.md` / `GEMINI.md` 必须与 `AGENTS.md` 内容一致。编辑后跑 `python scripts/agent_links.py repair`，pre-commit hook 强制检查。
-- **治理文档修改保护**：`.githooks/commit-msg` 检查以下治理文件是否被修改——`AGENTS.md`、`00_世界观/核心设定.md`、`.githooks/pre-commit`、`.githooks/commit-msg`、`STRUCTURE.md`、`docs/audit-checklist.md`、`05_复盘/reviewer-protocol.md`。若修改且 commit message 不含 `[governance]` 标记，提交被**拒绝**。治理文档的完整清单与保护细则见 `.githooks/commit-msg`。
+- **治理文档修改保护**：`.githooks/commit-msg` 检查以下治理文件是否被修改——`AGENTS.md`、`00_世界观/核心设定.md`、`.githooks/pre-commit`、`.githooks/commit-msg`、`STRUCTURE.md`、`docs/audit-checklist.md`、`05_复盘/reviewer-protocol.md`、`05_复盘/reviewer-prompt-template.md`。若修改且 commit message 不含 `[governance]` 标记，提交被**拒绝**。治理文档的完整清单与保护细则见 `.githooks/commit-msg`。
 - **伏笔表格式完整**：pre-commit 检查 `04_伏笔/伏笔登记表.md` 的 markdown 表格结构完整性（列数一致、状态字段合法值）。
 - **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
 - **人物卡更新提醒**：提交正文/上下文包时，pre-commit 扫描在场角色，若其人物卡未被同期修改 → 打印提醒（不阻断，确认无误后可直接提交）。
@@ -122,17 +124,18 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 - **通过阈值**：0 阻断项，flag 项 ≤ 2
 - **不通过** → 输出阻断清单（具体到人设第 X 条 / 记忆第 Y 条 / 世界观第 Z 条）→ 原写作 agent 修复 → reviewer 二审 → 最多 3 轮否则升级用户裁决
 - **通过** → 进入下一场或复盘
+- reviewer 启动：将 `05_复盘/reviewer-prompt-template.md` 的模板中 `<>` 替换为实际内容，复制到新对话窗口即可 spawn 独立 reviewer
 
 ### ④ 阶段复盘（卷结束时）
 
 复盘分两层：先跑机械脚本，再跑人工 converge。
 
 **机械层**（脚本自动执行）：
-- `python scripts/audit.py check` — 断链 / STRUCTURE 完整性 / AGENTS.md 行数 / 同步
+- `python scripts/audit.py dead-links` + `python scripts/audit.py structure` — 断链 / STRUCTURE 完整性（不跑 drift/memory 等代码项目检查项）
+- AGENTS.md 同步状态：`python scripts/agent_links.py check`
 - `python scripts/check_foreshadowing.py` — 伏笔 open/closed 状态 + 超期检测
 - `python scripts/relationship.py check` — 关系数据与角色文件一致性
 - `python scripts/check_chapters.py` — 章节时空一致性（死角色复活/同时两地/就绪自检）
-- （角色出勤 / 时间线校验脚本待实现）
 
 **语义层（复盘 converge）**——详见 `05_复盘/reviewer-protocol.md` 的本地协议。核心流程：
 1. **Spawn 独立 reviewer**（新 agent 实例），注入全卷正文 + 世界观 + 大纲 + 人物卡 + 伏笔表
@@ -160,10 +163,18 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 status: alive        # alive|dead|departed|unknown
 role: protagonist    # protagonist|antagonist|deuteragonist|supporting|minor
 age: 
-faction: 
+faction:             # 所属门派/阵营
 first_appearance:    # 卷/章
+tags:
+  - 门派/<门派名>
+  - 功法/<功法流派>
+  - 等级/<武学等级>
+  - 擅用/<武器类型>
+  - 关系/<阵营标签>
 ---
 ```
+
+> `#tags` 用于 Obsidian 标签面板和 Dataview 快速筛选——agent 写前准备时可按 `#门派/七瑶门` 检索同门角色、按 `#等级/一流` 定位实力层级。
 
 ### 章节 frontmatter
 

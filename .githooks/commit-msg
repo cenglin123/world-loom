@@ -13,6 +13,7 @@ GOVERNANCE_FILES=(
     "STRUCTURE.md"
     "docs/audit-checklist.md"
     "05_复盘/reviewer-protocol.md"
+    "05_复盘/reviewer-prompt-template.md"
 )
 
 STAGED=$(git -c core.quotepath=false diff --cached --name-only)

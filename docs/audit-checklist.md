@@ -2,12 +2,12 @@
 
 > 定期或复盘时运行 `python scripts/audit.py check` 做机械检查，然后按本清单逐项人工裁决。
 
-## 机械检查项（scripts/audit.py 覆盖）
+## 机械检查项
 
-- [ ] AGENTS.md / CLAUDE.md / GEMINI.md 同步一致
-- [ ] 文档内链无死链
-- [ ] STRUCTURE.md 索引与实际文件一致
-- [ ] AGENTS.md 行数在 ~200 行以内
+- [ ] AGENTS.md / CLAUDE.md / GEMINI.md 同步一致：`python scripts/agent_links.py check`
+- [ ] 文档内链无死链：`python scripts/audit.py dead-links`
+- [ ] STRUCTURE.md 索引与实际文件一致：`python scripts/audit.py structure`
+- [ ] AGENTS.md 行数在 ~200 行以内：`python scripts/audit.py structure` 末尾含行数报告
 
 ## 小说专项审计（agent 手动裁决）
 
