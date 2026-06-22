@@ -15,7 +15,7 @@ python scripts/agent_links.py check || {
 }
 
 # —— 2. 伏笔登记表格式完整性 ——
-STAGED=$(git diff --cached --name-only)
+STAGED=$(git -c core.quotepath=false diff --cached --name-only)
 if echo "$STAGED" | grep -qF "04_伏笔/伏笔登记表.md"; then
     python scripts/check_foreshadowing.py || {
         echo ""
@@ -39,6 +39,44 @@ if echo "$STAGED" | grep -qE "(02_人物/relationships.json|02_人物/.*\.md)"; 
         exit 1
     }
     echo "[pre-commit] relationships ok"
+fi
+
+# —— 4. 人物卡更新提醒（非阻断） ——
+# 若上下文包被提交，检查其中声明的在场角色的人物卡是否也一起更新了
+CONTEXT_FILES=$(echo "$STAGED" | grep -E "^03_正文/.*_准备_.*\.md$" || true)
+
+if [ -n "$CONTEXT_FILES" ]; then
+    UNTOUCHED_CHARS=""
+    for char_file in 02_人物/*.md; do
+        [ -f "$char_file" ] || continue
+        char_name=$(basename "$char_file" .md)
+        case "$char_name" in _索引|人物模板|README) continue ;; esac
+
+        # 该角色文件未被本次提交修改
+        if ! echo "$STAGED" | grep -qF "$char_file"; then
+            # 该角色的名字是否出现在任一已暂存的上下文包中？
+            for cf in $CONTEXT_FILES; do
+                if [ -f "$cf" ] && grep -qF "$char_name" "$cf" 2>/dev/null; then
+                    UNTOUCHED_CHARS="$UNTOUCHED_CHARS  $char_name"
+                    break
+                fi
+            done
+        fi
+    done
+
+    if [ -n "$UNTOUCHED_CHARS" ]; then
+        echo ""
+        echo "============================================"
+        echo "[REMINDER] 以下角色出现在上下文包中，"
+        echo "但其人物卡（02_人物/<角色名>.md）未被本次提交修改："
+        echo "$UNTOUCHED_CHARS"
+        echo ""
+        echo "请确认：这些角色的 L2 记忆 / 关系 / 人设确实无需更新？"
+        echo "如果有变化但忘了更新，请先更新人物卡再提交。"
+        echo "（此提醒不阻断提交——确认无误后重新提交即可。）"
+        echo "============================================"
+    fi
+    echo "[pre-commit] character update reminder ok"
 fi
 
 echo "[pre-commit] all checks passed"

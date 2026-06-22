@@ -15,7 +15,7 @@ GOVERNANCE_FILES=(
     "05_复盘/reviewer-protocol.md"
 )
 
-STAGED=$(git diff --cached --name-only)
+STAGED=$(git -c core.quotepath=false diff --cached --name-only)
 GOVERNANCE_TOUCHED=""
 for gf in "${GOVERNANCE_FILES[@]}"; do
     if echo "$STAGED" | grep -qF "$gf"; then

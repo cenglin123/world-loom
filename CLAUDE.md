@@ -64,6 +64,7 @@
 - **治理文档修改保护**：`.githooks/commit-msg` 检查以下治理文件是否被修改——`AGENTS.md`、`00_世界观/核心设定.md`、`.githooks/pre-commit`、`.githooks/commit-msg`、`STRUCTURE.md`、`docs/audit-checklist.md`、`05_复盘/reviewer-protocol.md`。若修改且 commit message 不含 `[governance]` 标记，提交被**拒绝**。治理文档的完整清单与保护细则见 `.githooks/commit-msg`。
 - **伏笔表格式完整**：pre-commit 检查 `04_伏笔/伏笔登记表.md` 的 markdown 表格结构完整性（列数一致、状态字段合法值）。
 - **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
+- **人物卡更新提醒**：提交正文/上下文包时，pre-commit 扫描在场角色，若其人物卡未被同期修改 → 打印提醒（不阻断，确认无误后可直接提交）。
 
 **流程强制 — 完工清单兜底**（无脚本强制，但必须在完工检查清单逐项确认）：
 
