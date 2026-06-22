@@ -264,6 +264,133 @@ def cmd_index():
     INDEX_FILE.write_text(new_text, encoding="utf-8")
     print(f"[OK] 已重建角色清单表（{len(chars)} 个角色）")
 
+def cmd_wizard(char_name: str):
+    """角色创建/完善向导。检查必填字段，报告缺口并给出引导提示。"""
+    char_file = CHAR_DIR / f"{char_name}.md"
+    template_file = CHAR_DIR / "人物模板.md"
+
+    # 文件不存在 → 从模板创建
+    if not char_file.exists():
+        if not template_file.exists():
+            print(f"[FAIL] 人物模板不存在：{template_file}")
+            sys.exit(1)
+        template_text = template_file.read_text(encoding="utf-8")
+        # 替换占位符
+        new_text = template_text.replace("<角色名>", char_name)
+        char_file.write_text(new_text, encoding="utf-8")
+        print(f"[OK] 已从模板创建 {char_file.relative_to(ROOT)}")
+
+    fm = _parse_frontmatter(char_file)
+    if fm is None:
+        print(f"[FAIL] {char_file.relative_to(ROOT)} 缺少 frontmatter")
+        sys.exit(1)
+
+    # 读取正文中的内核四维
+    body_text = char_file.read_text(encoding="utf-8")
+    body_after_fm = body_text[body_text.find("---", 3)+3:] if body_text.startswith("---") else body_text
+
+    def _body_has_field(text: str, field: str) -> bool:
+        """检查正文中某字段是否非空（非占位符）。"""
+        pattern = rf"\| {field} \| (.+?) \|"
+        m = re.search(pattern, text)
+        if not m:
+            return False
+        val = m.group(1).strip()
+        return bool(val) and "（" not in val and "待填" not in val
+
+    # 检查清单
+    checks = {
+        "status (alive|dead|departed|unknown)": {
+            "value": fm.get("status", ""),
+            "prompt": "该角色当前是存活、已故、退场还是状态未知？",
+            "example": "alive"
+        },
+        "role (protagonist|antagonist|deuteragonist|supporting|minor)": {
+            "value": fm.get("role", ""),
+            "prompt": "该角色在故事中的定位？主角/反派/二号位/配角/次要？",
+            "example": "protagonist"
+        },
+        "age": {
+            "value": fm.get("age", ""),
+            "prompt": "该角色的年龄？",
+            "example": "27"
+        },
+        "faction": {
+            "value": fm.get("faction", ""),
+            "prompt": "该角色所属门派/阵营？（对应 #门派/ 标签）",
+            "example": "七瑶门"
+        },
+        "first_appearance (卷/章)": {
+            "value": fm.get("first_appearance", ""),
+            "prompt": "该角色首次出场的卷/章？",
+            "example": "1/3"
+        },
+        "核心欲望": {
+            "value": "✓" if _body_has_field(body_after_fm, "核心欲望") else "",
+            "prompt": "该角色一生在追求什么？不能是'想变强'这种笼统表述，要是具体的人和事。",
+            "example": "要让当年逼她弃武的人当面认错"
+        },
+        "核心恐惧": {
+            "value": "✓" if _body_has_field(body_after_fm, "核心恐惧") else "",
+            "prompt": "该角色最怕什么发生？不能是'怕失去'，要具体到某个场景或后果。",
+            "example": "怕重蹈父亲在关键时刻犹豫、害死同伴的覆辙"
+        },
+        "底线/禁忌": {
+            "value": "✓" if _body_has_field(body_after_fm, "底线/禁忌") else "",
+            "prompt": "有什么事是该角色绝对不会做的？",
+            "example": "不对孩子出手；不背叛主动信任过自己的人"
+        },
+        "应激模式": {
+            "value": "✓" if _body_has_field(body_after_fm, "应激模式") else "",
+            "prompt": "该角色在压力下如何反应？不是'会暴躁'这类笼统描述，要有可观察的行为模式。",
+            "example": "越危险越冷静，先观察三息再动手"
+        },
+    }
+
+    # 检查标签五类
+    tags = _parse_tags(fm.get("tags", []))
+    tag_covered = set()
+    for t in tags:
+        for cat in REQUIRED_CATEGORIES:
+            if t.startswith(f"{cat}/"):
+                tag_covered.add(cat)
+    for cat in REQUIRED_CATEGORIES:
+        checks[f"标签 #{cat}/"] = {
+            "value": "✓" if cat in tag_covered else "",
+            "prompt": f"该角色的{cat}是什么？",
+            "example": f"{cat}/<填写>"
+        }
+
+    filled = []
+    missing = []
+    for field, info in checks.items():
+        if info["value"] and info["value"] != "[]":
+            filled.append(field)
+        else:
+            missing.append((field, info))
+
+    print(f"\n{'='*50}")
+    print(f"  {char_name} · 人物卡完善状态")
+    print(f"  {len(filled)}/{len(checks)} 字段已填写\n")
+
+    if filled:
+        print("已填写:")
+        for f in filled:
+            print(f"  [OK] {f}")
+
+    if missing:
+        print(f"\n待完善 ({len(missing)} 项):\n")
+        for field, info in missing:
+            print(f"  [  ] {field}")
+            print(f"       提示: {info['prompt']}")
+            print(f"       示例: {info['example']}")
+            print()
+
+    if not missing:
+        print("\n全部字段已就绪，可以开始使用该角色。")
+    else:
+        print(f"填写完成后运行 python scripts/check_tags.py check 校验完整性。")
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -279,6 +406,11 @@ def main():
         cmd_show(cat)
     elif cmd == "regenerate":
         cmd_regenerate()
+    elif cmd == "wizard":
+        if len(sys.argv) < 3:
+            print("用法: python scripts/check_tags.py wizard <角色名>")
+            sys.exit(1)
+        cmd_wizard(sys.argv[2])
     elif cmd == "_index":
         cmd_index()
     else:

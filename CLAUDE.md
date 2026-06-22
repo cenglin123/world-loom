@@ -51,6 +51,17 @@
 | 阶段性复盘 + converge 协议 + reviewer 模板 | [05_复盘/README.md](05_复盘/README.md) → [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md) → [05_复盘/reviewer-prompt-template.md](05_复盘/reviewer-prompt-template.md) |
 | 本方法论依据 | 四阶段工作流（见下方"四阶段工作流"节），融合 converge 迭代收敛质量控制 + 端木灵星传统写作技法 + 业界 AI 长篇写作实践 |
 
+## 人物创建流程
+
+用户提出添加新角色（可能只给了部分信息）时，按以下流程操作：
+
+1. `python scripts/check_tags.py wizard <角色名>` — 若文件不存在则从模板创建，随后输出**待完善清单**
+2. 将清单展示给用户，逐条引导填写——每条都带提示文案和示例值，用户只需确认或给出具体内容
+3. 用户确认后，将内容写入 `<角色名>.md` 的对应字段（frontmatter 或正文）
+4. 填写完成后，`python scripts/check_tags.py check` 校验完整性 → `python scripts/check_tags.py _index` 更新索引
+
+> wizard 命令检查 13 个字段：5 个 frontmatter 值（status/role/age/faction/first_appearance）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 5 类标签（门派/功法/等级/擅用/关系）。任何字段留空都会被列出，附带引导提示和示例值。
+
 ## 行为规则
 
 ### Compact 恢复（强制）
