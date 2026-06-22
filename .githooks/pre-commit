@@ -41,6 +41,20 @@ if echo "$STAGED" | grep -qE "(02_人物/relationships.json|02_人物/.*\.md)"; 
     echo "[pre-commit] relationships ok"
 fi
 
+# —— 3b. 标签完整性 ——
+if echo "$STAGED" | grep -qE "(02_人物/.*\.md)"; then
+    python scripts/check_tags.py check || {
+        echo ""
+        echo "============================================"
+        echo "标签数据不完整，请修正后重新提交。"
+        echo "  python scripts/check_tags.py check   # 查看详情"
+        echo "  每个角色必须包含五类标签：门派/功法/等级/擅用/关系"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] tags ok"
+fi
+
 # —— 4. 人物卡更新提醒（非阻断） ——
 # 若上下文包被提交，检查其中声明的在场角色的人物卡是否也一起更新了
 CONTEXT_FILES=$(echo "$STAGED" | grep -E "^03_正文/.*_准备_.*\.md$" || true)
