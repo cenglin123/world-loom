@@ -21,6 +21,7 @@ TEXT_DIR = ROOT / "03_正文"
 WORLD_FILE = ROOT / "00_世界观" / "核心设定.md"
 OUTLINE_FILE = ROOT / "01_大纲" / "主线.md"
 INDEX_FILE = CHAR_DIR / "_索引.md"
+WRITING_STYLE_FILE = ROOT / "docs" / "writing-style.md"
 
 # ── helpers ──────────────────────────────────────────────
 
@@ -67,21 +68,33 @@ def _parse_characters_present(raw: str | list | None) -> list[str]:
 
 # ── checks ────────────────────────────────────────────────
 
+def _body_has_content(path: Path) -> bool:
+    """检查 markdown 文件去掉 frontmatter 后是否有实质内容（非仅占位符）。"""
+    if not path.exists():
+        return False
+    text = path.read_text(encoding="utf-8")
+    if text.startswith("---"):
+        end = text.find("---", 3)
+        body = text[end+3:] if end != -1 else text
+    else:
+        body = text
+    # 去掉中文占位符（待填写/待选择 及其变体）
+    cleaned = re.sub(r'[（(]待[填写选择][^）)]*[）)]', '', body)
+    cleaned = cleaned.strip()
+    return bool(cleaned)
+
 def check_readiness(issues: list):
-    """H1: 就绪自检——世界观/大纲/人物非空才允许提交正文。"""
-    # 检查世界观
+    """H1: 就绪自检——世界观/大纲/人物/写作风格非空才允许提交正文。"""
+    # 检查世界观（不依赖具体标题名，检查文件体是否有实质内容）
     if WORLD_FILE.exists():
-        text = WORLD_FILE.read_text(encoding="utf-8")
-        if "待填写" in text[text.find("## 世界法则"):text.find("## 善恶观") if "## 善恶观" in text else len(text)] if "## 世界法则" in text else True:
-            issues.append("[H1-BLOCK] 世界观/核心设定.md 世界法则段仍为'待填写'")
+        if not _body_has_content(WORLD_FILE):
+            issues.append("[H1-BLOCK] 世界观/核心设定.md 无实质内容（仍为待填写）")
     else:
         issues.append("[H1-BLOCK] 世界观/核心设定.md 不存在")
 
-    # 检查大纲主线
+    # 检查大纲主线（不依赖具体标题名）
     if OUTLINE_FILE.exists():
-        text = OUTLINE_FILE.read_text(encoding="utf-8")
-        m = re.search(r"## 主线（一句话）\n\n(.*?)\n", text)
-        if m and ("待填写" in m.group(1) or not m.group(1).strip()):
+        if not _body_has_content(OUTLINE_FILE):
             issues.append("[H1-BLOCK] 大纲/主线.md 主线一句话仍为'待填写'")
     else:
         issues.append("[H1-BLOCK] 大纲/主线.md 不存在")
@@ -90,6 +103,13 @@ def check_readiness(issues: list):
     chars = _list_character_files()
     if not chars:
         issues.append("[H1-BLOCK] 02_人物/ 下无任何实际角色文件（仅有模板/索引）")
+
+    # 检查 writing-style.md 有实质内容（视角/时态段已选定）
+    if WRITING_STYLE_FILE.exists():
+        if not _body_has_content(WRITING_STYLE_FILE):
+            issues.append("[H1-BLOCK] docs/writing-style.md 通篇为待填写/待选择，缺少实质内容")
+    else:
+        issues.append("[H1-BLOCK] docs/writing-style.md 不存在")
 
 def check_chapters(chapter_files: list[Path], issues: list):
     """D3: 章节 frontmatter 完整性 + 时空一致性。"""

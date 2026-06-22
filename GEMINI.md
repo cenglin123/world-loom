@@ -18,8 +18,10 @@
 1. `00_世界观/核心设定.md` 的世界法则段**非空**（不是"待填写"）
 2. `01_大纲/主线.md` 的主线一句话**已填写**
 3. `02_人物/_索引.md` 角色清单**至少有一个实际角色**（不含示例/模板行）
+4. `docs/writing-style.md` 的视角和时态段**已选定**（非"待选择"）
 
 > 此哨兵是硬约束——宪法审查、写前准备、复盘 converge 全部依赖这三项有实质内容。设定未就绪时推进正文产生的漂移无法被任何机制兜住。
+> 三项失败时 → 引导用户按 CURRENT.md '下一步'清单逐项填写；世界法则格式见 00_世界观/核心设定.md、人物卡格式见 02_人物/人物模板.md。
 
 ## 同步声明
 
@@ -37,7 +39,7 @@
 | 叙述约定（视角/时态/文风/端木技法） | [docs/writing-style.md](docs/writing-style.md) |
 | AI 写作已知陷阱（本项目专属） | [docs/pitfalls.md](docs/pitfalls.md) |
 | 一致性审计清单 | [docs/audit-checklist.md](docs/audit-checklist.md) |
-| 复杂任务计划 | [docs/plans/](docs/plans/) |
+| 复杂任务计划 | [docs/plans/](docs/plans/active/) |
 | 当前任务状态 | [docs/CURRENT.md](docs/CURRENT.md) |
 | 变更记录 | [CHANGELOG.md](CHANGELOG.md) |
 | 世界观·硬核心（locked，改需治理审批） | [00_世界观/核心设定.md](00_世界观/核心设定.md) |
@@ -101,11 +103,11 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 - **与已埋伏笔/人物记忆/主线有张力（非违宪但不自洽）** → 预检 flag + 提示用户确认
 - **方向模糊/歧义/不在设定覆盖范围** → 向用户提问澄清，不自行推断
 
-审查结论写入 `03_正文/第N卷/_审查_第M章.md`（frontmatter 标注审查日期 + 判据 + 结论），供跨会话追溯。
+审查结论写入 `03_正文/第N卷/_审查_第M章.md`（frontmatter 标注审查日期 + 判据 + 结论），供跨会话追溯。写入前若父目录（`03_正文/第N卷/`）不存在，先创建。
 
 ### ② 写前准备
 
-审过后，为每场戏整理**写前上下文包**（约 300-500 字），写入 `03_正文/第N卷/_准备_第M章.md`：
+审过后，为每场戏整理**写前上下文包**（约 300-500 字），写入 `03_正文/第N卷/_准备_第M章.md`（写入前若父目录不存在，先创建）：
 
 - 本场大纲 + 为什么重要
 - 在场角色：内核要义 + 最近 3-5 条 L2 记忆 + 未解决问题 + 两两关系摘要（从 `02_人物/relationships.json` 读取，用 `python scripts/relationship.py show <角色名>` 获取）
@@ -219,7 +221,7 @@ status: draft
 - [ ] **正文一致性**：本场/本卷是否有漂移——人设违反、记忆矛盾、关系混乱、世界观冲突？走写后审或复盘 converge。
 - [ ] **人物记忆回写**：受影响角色的 `02_人物/<角色名>.md` 记忆段是否已更新？L2 新条目是否正确？
 - [ ] **关系数据同步**：`python scripts/relationship.py check` 是否通过？有互动的角色对是否已用 `set`/`update` 写入 `02_人物/relationships.json`？完成后跑 `regenerate`。
-- [ ] **标签数据同步**：`python scripts/check_tags.py check` 是否通过？角色能力变化后 tags 是否已更新？完成后跑 `python scripts/check_tags.py regenerate` 重建标签汇总。
+- [ ] **标签数据同步**：`python scripts/check_tags.py check` 是否通过？角色能力变化后 tags 是否已更新？新增/移除角色后跑 `python scripts/check_tags.py regenerate` 重建标签汇总、`python scripts/check_tags.py _index` 重建角色清单表。
 - [ ] **伏笔登记**：埋了新伏笔？`04_伏笔/伏笔登记表.md` 已录入。收了旧伏笔？状态已改 closed。
 - [ ] **CHANGELOG**：是否值得记录？用 `python scripts/changelog.py add ...` 追加。
 - [ ] **同步一致性**：本文件若被编辑，跑 `python scripts/agent_links.py repair`。

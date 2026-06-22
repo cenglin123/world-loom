@@ -11,6 +11,7 @@
   python scripts/check_tags.py list               # 列出所有标签
   python scripts/check_tags.py show 门派           # 按类别列出
   python scripts/check_tags.py regenerate          # 重建 _索引.md 的标签汇总段
+  python scripts/check_tags.py _index              # 重建 _索引.md 的角色清单表
 """
 
 import json
@@ -39,7 +40,8 @@ def _parse_frontmatter(path: Path) -> dict | None:
     current_key = None
     in_list = False
     list_values = []
-    for line in raw.split("\n"):
+    lines = raw.split("\n")
+    for i, line in enumerate(lines):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
@@ -57,7 +59,17 @@ def _parse_frontmatter(path: Path) -> dict | None:
             key = key.strip()
             val = val.strip()
             if val == "":
-                in_list = True
+                # Only enter list mode if a subsequent line starts with "- "
+                # (prevents empty faction: etc. from being treated as a YAML list)
+                peek_in_list = False
+                for j in range(i + 1, len(lines)):
+                    next_line = lines[j].strip()
+                    if not next_line or next_line.startswith("#"):
+                        continue
+                    if next_line.startswith("- "):
+                        peek_in_list = True
+                    break
+                in_list = peek_in_list
                 current_key = key
                 list_values = []
             else:
@@ -129,7 +141,10 @@ def check(issues: list) -> int:
             if expected not in faction_tags:
                 issues.append(f"[WARN] {name}: faction='{faction}' 但标签中无'{expected}'")
 
-    if errors == 0:
+    if errors > 0:
+        for issue in issues:
+            print(issue)
+    else:
         total = sum(len(v) for v in all_tags.values())
         print(f"[PASS] 标签校验 OK（{len(chars)} 角色, {total} 个标签, {len(REQUIRED_CATEGORIES)} 类）")
     return min(errors, 1)
@@ -211,6 +226,44 @@ def cmd_regenerate():
     INDEX_FILE.write_text(new_text, encoding="utf-8")
     print(f"[OK] 已重建标签汇总段（{len(all_tags)} 个标签）")
 
+def cmd_index():
+    """在 _索引.md 中生成角色清单表。从 02_人物/*.md 的 frontmatter 读取 role 字段。"""
+    chars = _list_character_files()
+    if not INDEX_FILE.exists():
+        print(f"[FAIL] {INDEX_FILE} 不存在")
+        sys.exit(1)
+
+    rows = []
+    for name, fpath in sorted(chars.items()):
+        fm = _parse_frontmatter(fpath)
+        role = fm.get("role", "—") if fm else "—"
+        rows.append(f"| {name} | {name}.md | {role} |")
+
+    if not rows:
+        rows.append("| （待创建） | — | — |")
+
+    table = "\n".join([
+        "| 角色名 | 文件 | 定位 |",
+        "|--------|------|------|",
+    ] + rows)
+
+    text = INDEX_FILE.read_text(encoding="utf-8")
+    pattern = r"(## 角色清单\n)(.*?)(?=\n## |\Z)"
+    if "## 角色清单" in text:
+        new_text = re.sub(pattern, rf"\1\n{table}\n", text, count=1, flags=re.DOTALL)
+    else:
+        # 在文件开头插入（frontmatter 之后或文件头）
+        if text.startswith("---"):
+            end = text.find("---", 3)
+            prefix = text[:end+3]
+            body = text[end+3:]
+            new_text = prefix + f"\n\n## 角色清单\n{table}\n" + body
+        else:
+            new_text = f"## 角色清单\n{table}\n\n" + text
+
+    INDEX_FILE.write_text(new_text, encoding="utf-8")
+    print(f"[OK] 已重建角色清单表（{len(chars)} 个角色）")
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -226,6 +279,8 @@ def main():
         cmd_show(cat)
     elif cmd == "regenerate":
         cmd_regenerate()
+    elif cmd == "_index":
+        cmd_index()
     else:
         print(__doc__)
         sys.exit(1)
