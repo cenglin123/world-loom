@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# novel_world_one — commit-msg hook
+# 治理文档修改保护：若提交触达治理文档，commit message 必须含 [governance] 标记
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+GOVERNANCE_FILES=(
+    "AGENTS.md"
+    "世界观/核心设定.md"
+    ".githooks/pre-commit"
+    ".githooks/commit-msg"
+    "STRUCTURE.md"
+    "docs/audit-checklist.md"
+    "复盘/reviewer-protocol.md"
+)
+
+STAGED=$(git diff --cached --name-only)
+GOVERNANCE_TOUCHED=""
+for gf in "${GOVERNANCE_FILES[@]}"; do
+    if echo "$STAGED" | grep -qF "$gf"; then
+        GOVERNANCE_TOUCHED="$GOVERNANCE_TOUCHED  $gf"
+    fi
+done
+
+if [ -n "$GOVERNANCE_TOUCHED" ]; then
+    if ! echo "$COMMIT_MSG" | grep -q "\[governance\]"; then
+        echo ""
+        echo "============================================"
+        echo "[GOVERNANCE] 以下治理文档被修改:"
+        echo "$GOVERNANCE_TOUCHED"
+        echo ""
+        echo "治理文档的修改必须标记，在 commit message 中加入 [governance]："
+        echo "  git commit -m '[governance] 修改说明'"
+        echo ""
+        echo "原因：治理文档影响所有 agent 的行为基线，"
+        echo "未标记的修改视为意外/未审查变更。"
+        echo "============================================"
+        exit 1
+    fi
+    echo "[commit-msg] governance ok (marked with [governance])"
+fi
+
+exit 0
