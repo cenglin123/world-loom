@@ -32,24 +32,16 @@
 
 ## 信息导航
 
+> 完整的项目地图见 **[docs/STRUCTURE.md](docs/STRUCTURE.md)**——所有文件/目录/工具的统一索引。AGENTS.md 只保留不在 STRUCTURE 中的高频入口：
+
 | 需要什么 | 去哪找 |
 |---------|--------|
-| 文档总索引 | [docs/STRUCTURE.md](docs/STRUCTURE.md) |
-| 项目总览 + 世界观梗概 + 关键设计决策 | [docs/overview.md](docs/overview.md) |
-| 叙述约定（视角/时态/文风/端木技法） | [docs/writing-style.md](docs/writing-style.md) |
-| AI 写作已知陷阱（本项目专属） | [docs/pitfalls.md](docs/pitfalls.md) |
-| 一致性审计清单 | [docs/audit-checklist.md](docs/audit-checklist.md) |
-| 复杂任务计划 | [docs/plans/](docs/plans/active/) |
-| 当前任务状态 | [docs/CURRENT.md](docs/CURRENT.md) |
-| 变更记录 | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
-| 世界观·硬核心（locked，改需治理审批） | [00_世界观/核心设定.md](00_世界观/核心设定.md) |
-| 世界观·外围（可扩展） | [00_世界观/外围设定.md](00_世界观/外围设定.md) |
-| 故事大纲（主线 + 分卷） | [01_大纲/主线.md](01_大纲/主线.md) |
-| 人物（人设 / 记忆 / 关系三层框架 + 标签索引） | [02_人物/_索引.md](02_人物/_索引.md) + 关系数据源 [02_人物/relationships.json](02_人物/relationships.json) + 标签校验 `scripts/check_tags.py` |
-| 伏笔登记（open/closed 状态机） | [04_伏笔/伏笔登记表.md](04_伏笔/伏笔登记表.md) |
-| 正文章节 | [03_正文/README.md](03_正文/README.md) |
-| 阶段性复盘 + converge 协议 + reviewer 模板 | [05_复盘/README.md](05_复盘/README.md) → [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md) → [05_复盘/reviewer-prompt-template.md](05_复盘/reviewer-prompt-template.md) |
-| 本方法论依据 | 四阶段工作流（见下方"四阶段工作流"节），融合 converge 迭代收敛质量控制 + 端木灵星传统写作技法 + 业界 AI 长篇写作实践 |
+| **完整文件地图** | [docs/STRUCTURE.md](docs/STRUCTURE.md) |
+| 当前任务状态（compact 恢复必读） | [docs/CURRENT.md](docs/CURRENT.md) |
+| 复杂任务计划 | [docs/plans/active/](docs/plans/active/) |
+| 人物创建向导 | `python scripts/check_tags.py wizard <角色名>`（见下方"人物创建流程"） |
+| 四阶段工作流 | 见下方"四阶段工作流"节 |
+| 本方法论依据 | 融合 converge 迭代收敛质量控制 + 端木灵星传统写作技法 + 业界 AI 长篇写作实践 |
 
 ## 人物创建流程
 
