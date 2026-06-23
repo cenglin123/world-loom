@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """人物标签完整性校验。
 检查项：
-  - 每个角色文件是否包含五类必填标签（所属/能力/等级/擅用/关系）
-  - 标签格式合法性（以 所属/ 能力/ 等级/ 擅用/ 关系/ 开头）
+  - 每个角色文件是否包含四类必填标签（所属/能力/等级/擅用）
+  - 标签格式合法性（以 所属/ 能力/ 等级/ 擅用/ 开头）
   - 标签值是否与角色文件中的 faction 字段一致
   - 生成标签索引视图
 
@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CHAR_DIR = ROOT / "02_人物"
 INDEX_FILE = CHAR_DIR / "_索引.md"
 
-REQUIRED_CATEGORIES = ["所属", "能力", "等级", "擅用", "关系"]
+REQUIRED_CATEGORIES = ["所属", "能力", "等级", "擅用"]
 
 def _parse_frontmatter(path: Path) -> dict | None:
     if not path.exists():
@@ -116,11 +116,11 @@ def check(issues: list) -> int:
 
         tags = _parse_tags(fm.get("tags", []))
         if not tags:
-            issues.append(f"[WARN] {name}: 标签为空——至少需要所属/能力/等级/擅用/关系五类")
+            issues.append(f"[WARN] {name}: 标签为空——至少需要所属/能力/等级/擅用四类")
             errors += 1
             continue
 
-        # 检查五类必填
+        # 检查四类必填
         covered = set()
         for tag in tags:
             for cat in REQUIRED_CATEGORIES:
@@ -317,7 +317,7 @@ def cmd_wizard(char_name: str):
         },
         "faction": {
             "value": fm.get("faction", ""),
-            "prompt": "该角色所属所属/阵营？（对应 #所属/ 标签）",
+            "prompt": "该角色所属/阵营？（对应 #所属/ 标签）",
             "example": "七瑶门"
         },
         "first_appearance (卷/章)": {
@@ -352,7 +352,7 @@ def cmd_wizard(char_name: str):
         },
     }
 
-    # 检查标签五类
+    # 检查标签四类
     tags = _parse_tags(fm.get("tags", []))
     tag_covered = set()
     for t in tags:
