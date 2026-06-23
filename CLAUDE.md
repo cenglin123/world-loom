@@ -80,7 +80,7 @@
 - **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
 - **人物卡更新提醒**：提交正文/上下文包时，pre-commit 扫描在场角色，若其人物卡未被同期修改 → 打印提醒（不阻断，确认无误后可直接提交）。
 - **章节校验（就绪自检 + 时空一致性）**：`python scripts/check_chapters.py --staged` — 提交正文时强制：(a) 世界观/大纲/人物非空；(b) characters_present 引用的角色都存在；(c) status=dead 的角色不出场；(d) 同一 in_world_date 下角色不出现于两个地点。
-- **标签完整性**：`python scripts/check_tags.py check` — 每个角色文件必须含四类标签（所属/能力/等级/擅用/关系），pre-commit 强制检查。卷末跑 `regenerate` 重建 `_索引.md` 标签汇总视图。
+- **标签完整性**：`python scripts/check_tags.py check` — 每个角色文件必须含四类标签（所属/能力/等级/擅用），pre-commit 强制检查。卷末跑 `regenerate` 重建 `_索引.md` 标签汇总视图。
 
 **流程强制 — 完工清单兜底**（无脚本强制，但必须在完工检查清单逐项确认）：
 
@@ -89,7 +89,7 @@
 - **伏笔必须登记**：新伏笔 → `04_伏笔/伏笔登记表.md` 登记（状态=open），回收后 → closed。不登记 = 不存在 = 收不回来。完工清单逐章确认。
 - **人物记忆必须回写**：每卷/关键场景后，受影响角色的 `02_人物/<角色名>.md` 记忆段必须更新。完工清单逐卷确认（漏回写的记忆漂移在复盘 converge 中由 reviewer 检查）。
 - **关系数据必须同步**：角色之间有意义的互动发生后，用 `python scripts/relationship.py set/update` 写入 `02_人物/relationships.json`。卷末跑 `regenerate` 重建 _索引.md 矩阵视图。pre-commit 强制校验数据完整性。
-- **标签数据必须同步**：角色创建或能力变化后，更新其 frontmatter tags（所属/能力/等级/擅用/关系四类）。卷末跑 `python scripts/check_tags.py regenerate` 重建标签汇总。pre-commit 强制校验四类完整性。
+- **标签数据必须同步**：角色创建或能力变化后，更新其 frontmatter tags（所属/能力/等级/擅用四类）。卷末跑 `python scripts/check_tags.py regenerate` 重建标签汇总。pre-commit 强制校验四类完整性。
 - **完工必检**：任务完成后必须执行末尾"完工检查清单"，不可跳过。
 
 ### 默认偏好
@@ -178,7 +178,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 status: alive        # alive|dead|departed|unknown
 role: protagonist    # protagonist|antagonist|deuteragonist|supporting|minor
 age: 
-faction:             # 所属所属/阵营
+faction:             # 所属/阵营
 first_appearance:    # 卷/章
 tags:
   - 所属/<组织名>

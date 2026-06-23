@@ -38,7 +38,6 @@ def _strip_noise(text: str) -> str:
 # Root-level instruction files always checked.
 _ROOT_DOC_FILES = [
     "AGENTS.md",
-    "docs/STRUCTURE.md",
 ]
 
 # Dynamic discovery: all .md files under docs/ (excluding plans/ and __pycache__).
