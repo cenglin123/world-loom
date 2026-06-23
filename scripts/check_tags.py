@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """人物标签完整性校验。
 检查项：
-  - 每个角色文件是否包含五类必填标签（门派/功法/等级/擅用/关系）
-  - 标签格式合法性（以 门派/ 功法/ 等级/ 擅用/ 关系/ 开头）
+  - 每个角色文件是否包含五类必填标签（所属/能力/等级/擅用/关系）
+  - 标签格式合法性（以 所属/ 能力/ 等级/ 擅用/ 关系/ 开头）
   - 标签值是否与角色文件中的 faction 字段一致
   - 生成标签索引视图
 
 用法:
   python scripts/check_tags.py check              # 校验
   python scripts/check_tags.py list               # 列出所有标签
-  python scripts/check_tags.py show 门派           # 按类别列出
+  python scripts/check_tags.py show 所属           # 按类别列出
   python scripts/check_tags.py regenerate          # 重建 _索引.md 的标签汇总段
   python scripts/check_tags.py _index              # 重建 _索引.md 的角色清单表
 """
@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CHAR_DIR = ROOT / "02_人物"
 INDEX_FILE = CHAR_DIR / "_索引.md"
 
-REQUIRED_CATEGORIES = ["门派", "功法", "等级", "擅用", "关系"]
+REQUIRED_CATEGORIES = ["所属", "能力", "等级", "擅用", "关系"]
 
 def _parse_frontmatter(path: Path) -> dict | None:
     if not path.exists():
@@ -89,7 +89,7 @@ def _list_character_files() -> dict[str, Path]:
     return chars
 
 def _parse_tags(tags_raw) -> list[str]:
-    """解析 YAML tags: 可能是 ['门派/xxx', ...] 或 [门派/xxx, ...]"""
+    """解析 YAML tags: 可能是 ['所属/xxx', ...] 或 [所属/xxx, ...]"""
     if tags_raw is None:
         return []
     if isinstance(tags_raw, list):
@@ -116,7 +116,7 @@ def check(issues: list) -> int:
 
         tags = _parse_tags(fm.get("tags", []))
         if not tags:
-            issues.append(f"[WARN] {name}: 标签为空——至少需要门派/功法/等级/擅用/关系五类")
+            issues.append(f"[WARN] {name}: 标签为空——至少需要所属/能力/等级/擅用/关系五类")
             errors += 1
             continue
 
@@ -133,11 +133,11 @@ def check(issues: list) -> int:
             issues.append(f"[WARN] {name}: 缺少标签类别 {missing_cats}")
             errors += 1
 
-        # 门派标签与本文件 faction 字段一致性
+        # 所属标签与本文件 faction 字段一致性
         faction = fm.get("faction", "")
-        faction_tags = [t for t in tags if t.startswith("门派/")]
+        faction_tags = [t for t in tags if t.startswith("所属/")]
         if faction and faction_tags:
-            expected = f"门派/{faction}"
+            expected = f"所属/{faction}"
             if expected not in faction_tags:
                 issues.append(f"[WARN] {name}: faction='{faction}' 但标签中无'{expected}'")
 
@@ -317,7 +317,7 @@ def cmd_wizard(char_name: str):
         },
         "faction": {
             "value": fm.get("faction", ""),
-            "prompt": "该角色所属门派/阵营？（对应 #门派/ 标签）",
+            "prompt": "该角色所属所属/阵营？（对应 #所属/ 标签）",
             "example": "七瑶门"
         },
         "first_appearance (卷/章)": {
@@ -407,7 +407,7 @@ def main():
     elif cmd == "list":
         cmd_list()
     elif cmd == "show":
-        cat = sys.argv[2] if len(sys.argv) > 2 else "门派"
+        cat = sys.argv[2] if len(sys.argv) > 2 else "所属"
         cmd_show(cat)
     elif cmd == "regenerate":
         cmd_regenerate()

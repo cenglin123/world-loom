@@ -59,7 +59,7 @@
 3. 用户确认后，将内容写入 `<角色名>.md` 的对应字段（frontmatter 或正文）
 4. 填写完成后，`python scripts/check_tags.py check` 校验完整性 → `python scripts/check_tags.py _index` 更新索引
 
-> wizard 命令检查 15 个字段：6 个 frontmatter 值（status/role/age/faction/first_appearance/world_position）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 5 类标签（门派/功法/等级/擅用/关系）。任何字段留空都会被列出，附带引导提示和示例值。
+> wizard 命令检查 15 个字段：6 个 frontmatter 值（status/role/age/faction/first_appearance/world_position）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 5 类标签（所属/能力/等级/擅用/关系）。任何字段留空都会被列出，附带引导提示和示例值。
 
 ## 行为规则
 
@@ -80,7 +80,7 @@
 - **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
 - **人物卡更新提醒**：提交正文/上下文包时，pre-commit 扫描在场角色，若其人物卡未被同期修改 → 打印提醒（不阻断，确认无误后可直接提交）。
 - **章节校验（就绪自检 + 时空一致性）**：`python scripts/check_chapters.py --staged` — 提交正文时强制：(a) 世界观/大纲/人物非空；(b) characters_present 引用的角色都存在；(c) status=dead 的角色不出场；(d) 同一 in_world_date 下角色不出现于两个地点。
-- **标签完整性**：`python scripts/check_tags.py check` — 每个角色文件必须含五类标签（门派/功法/等级/擅用/关系），pre-commit 强制检查。卷末跑 `regenerate` 重建 `_索引.md` 标签汇总视图。
+- **标签完整性**：`python scripts/check_tags.py check` — 每个角色文件必须含五类标签（所属/能力/等级/擅用/关系），pre-commit 强制检查。卷末跑 `regenerate` 重建 `_索引.md` 标签汇总视图。
 
 **流程强制 — 完工清单兜底**（无脚本强制，但必须在完工检查清单逐项确认）：
 
@@ -89,7 +89,7 @@
 - **伏笔必须登记**：新伏笔 → `04_伏笔/伏笔登记表.md` 登记（状态=open），回收后 → closed。不登记 = 不存在 = 收不回来。完工清单逐章确认。
 - **人物记忆必须回写**：每卷/关键场景后，受影响角色的 `02_人物/<角色名>.md` 记忆段必须更新。完工清单逐卷确认（漏回写的记忆漂移在复盘 converge 中由 reviewer 检查）。
 - **关系数据必须同步**：角色之间有意义的互动发生后，用 `python scripts/relationship.py set/update` 写入 `02_人物/relationships.json`。卷末跑 `regenerate` 重建 _索引.md 矩阵视图。pre-commit 强制校验数据完整性。
-- **标签数据必须同步**：角色创建或能力变化后，更新其 frontmatter tags（门派/功法/等级/擅用/关系五类）。卷末跑 `python scripts/check_tags.py regenerate` 重建标签汇总。pre-commit 强制校验五类完整性。
+- **标签数据必须同步**：角色创建或能力变化后，更新其 frontmatter tags（所属/能力/等级/擅用/关系五类）。卷末跑 `python scripts/check_tags.py regenerate` 重建标签汇总。pre-commit 强制校验五类完整性。
 - **完工必检**：任务完成后必须执行末尾"完工检查清单"，不可跳过。
 
 ### 默认偏好
@@ -150,7 +150,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 - `python scripts/check_foreshadowing.py` — 伏笔 open/closed 状态 + 超期检测
 - `python scripts/relationship.py check` — 关系数据与角色文件一致性
 - `python scripts/check_chapters.py` — 章节时空一致性（死角色复活/同时两地/就绪自检）
-- `python scripts/check_tags.py check` — 标签五类完整性 + 门派标签与 faction 字段一致
+- `python scripts/check_tags.py check` — 标签五类完整性 + 所属标签与 faction 字段一致
 
 **语义层（复盘 converge）**——详见 `05_复盘/reviewer-protocol.md` 的本地协议。核心流程：
 1. **Spawn 独立 reviewer**（新 agent 实例），注入全卷正文 + 世界观 + 大纲 + 人物卡 + 伏笔表
@@ -178,18 +178,18 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 status: alive        # alive|dead|departed|unknown
 role: protagonist    # protagonist|antagonist|deuteragonist|supporting|minor
 age: 
-faction:             # 所属门派/阵营
+faction:             # 所属所属/阵营
 first_appearance:    # 卷/章
 tags:
-  - 门派/<门派名>
-  - 功法/<功法流派>
+  - 所属/<组织名>
+  - 能力/<能力流派>
   - 等级/<武学等级>
   - 擅用/<武器类型>
   - 关系/<阵营标签>
 ---
 ```
 
-> `#tags` 用于 Obsidian 标签面板和 Dataview 快速筛选——agent 写前准备时可按 `#门派/七瑶门` 检索同门角色、按 `#等级/一流` 定位实力层级。
+> `#tags` 用于 Obsidian 标签面板和 Dataview 快速筛选——agent 写前准备时可按 `#所属/七瑶门` 检索同组织角色、按 `#等级/一流` 定位实力层级。
 
 ### 章节 frontmatter
 
