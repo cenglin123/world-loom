@@ -325,6 +325,11 @@ def cmd_wizard(char_name: str):
             "prompt": "该角色首次出场的卷/章？",
             "example": "1/3"
         },
+        "world_position (上层|下层|边缘|中心)": {
+            "value": fm.get("world_position", ""),
+            "prompt": "该角色在世界结构中的位置？上层(掌权者/贵族)、下层(平民/贫民)、边缘(底层/下水道视角)、还是中心(决策圈/信息枢纽)？",
+            "example": "边缘"
+        },
         "核心欲望": {
             "value": "✓" if _body_has_field(body_after_fm, "核心欲望") else "",
             "prompt": "该角色一生在追求什么？不能是'想变强'这种笼统表述，要是具体的人和事。",

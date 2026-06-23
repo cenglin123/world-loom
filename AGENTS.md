@@ -41,7 +41,7 @@
 | 复杂任务计划 | [docs/plans/](docs/plans/active/) |
 | 当前任务状态 | [docs/CURRENT.md](docs/CURRENT.md) |
 | 变更记录 | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
-| 世界观·硬核心（locked，改需治理审批） | [00_世界观/核心设定.md](00_世界观/核心设定.md) |
+| 世界观（物理层 locked + 社会层/张力层可扩展） | [00_世界观/核心设定.md](00_世界观/核心设定.md) |
 | 世界观·外围（可扩展） | [00_世界观/外围设定.md](00_世界观/外围设定.md) |
 | 故事大纲（主线 + 分卷） | [01_大纲/主线.md](01_大纲/主线.md) |
 | 人物（人设 / 记忆 / 关系三层框架 + 标签索引） | [02_人物/_索引.md](02_人物/_索引.md) + 关系数据源 [02_人物/relationships.json](02_人物/relationships.json) + 标签校验 `scripts/check_tags.py` |
@@ -59,7 +59,7 @@
 3. 用户确认后，将内容写入 `<角色名>.md` 的对应字段（frontmatter 或正文）
 4. 填写完成后，`python scripts/check_tags.py check` 校验完整性 → `python scripts/check_tags.py _index` 更新索引
 
-> wizard 命令检查 13 个字段：5 个 frontmatter 值（status/role/age/faction/first_appearance）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 5 类标签（门派/功法/等级/擅用/关系）。任何字段留空都会被列出，附带引导提示和示例值。
+> wizard 命令检查 15 个字段：6 个 frontmatter 值（status/role/age/faction/first_appearance/world_position）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 5 类标签（门派/功法/等级/擅用/关系）。任何字段留空都会被列出，附带引导提示和示例值。
 
 ## 行为规则
 
@@ -84,7 +84,7 @@
 
 **流程强制 — 完工清单兜底**（无脚本强制，但必须在完工检查清单逐项确认）：
 
-- **世界观硬核心 locked**：`00_世界观/核心设定.md` frontmatter `locked: true`。任何修改必须走多轮独立评审。pre-commit 会检测该文件的修改并要求 `[governance]` 标记。
+- **世界观硬核心 locked**：`00_世界观/核心设定.md` frontmatter `locked: true` 仅保护物理层。物理层修改必须走多轮独立评审；社会层和张力层走轻量迭代。pre-commit 会检测该文件的修改并要求 `[governance]` 标记。
 - **人设内核不可轻改**：核心欲望/核心恐惧/底线/应激模式是行为边界。修改需标注触发事件 + 走 reviewer 验证 + 完工清单确认。
 - **伏笔必须登记**：新伏笔 → `04_伏笔/伏笔登记表.md` 登记（状态=open），回收后 → closed。不登记 = 不存在 = 收不回来。完工清单逐章确认。
 - **人物记忆必须回写**：每卷/关键场景后，受影响角色的 `02_人物/<角色名>.md` 记忆段必须更新。完工清单逐卷确认（漏回写的记忆漂移在复盘 converge 中由 reviewer 检查）。
