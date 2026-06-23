@@ -173,7 +173,7 @@ def _check_dead_links() -> list[dict[str, Any]]:
         source_dir = path.parent
         for target, _label, lineno in _extract_file_links(_read(path)):
             resolved = _resolve(target, source_dir)
-            exists = resolved.is_file()
+            exists = resolved.is_file() or resolved.is_dir()
             results.append({
                 "kind": "dead_link",
                 "status": "ok" if exists else "dead",
