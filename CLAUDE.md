@@ -59,7 +59,7 @@
 3. 用户确认后，将内容写入 `<角色名>.md` 的对应字段（frontmatter 或正文）
 4. 填写完成后，`python scripts/check_tags.py check` 校验完整性 → `python scripts/check_tags.py _index` 更新索引
 
-> wizard 命令检查 14 个字段：6 个 frontmatter 值（status/role/age/faction/first_appearance/world_position）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 4 类标签（所属/能力/等级/擅用）。任何字段留空都会被列出，附带引导提示和示例值。
+> wizard 命令检查 15 个字段：6 个 frontmatter 值（status/role/age/faction/first_appearance/world_position）+ 1 个前史（塑造内核的关键事件）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 4 类标签（所属/能力/等级/擅用）。任何字段留空都会被列出，附带引导提示和示例值。
 
 ## 行为规则
 

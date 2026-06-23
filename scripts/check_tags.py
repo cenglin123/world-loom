@@ -298,6 +298,24 @@ def cmd_wizard(char_name: str):
         val = m.group(1).strip()
         return bool(val) and "（" not in val and "待填" not in val
 
+    def _section_has_content(text: str, heading_kw: str) -> bool:
+        """检查某个散文小节（## / ### 标题含 heading_kw）是否有非占位符正文。"""
+        in_section = False
+        for line in text.splitlines():
+            if line.startswith("#") and heading_kw in line:
+                in_section = True
+                continue
+            if in_section:
+                if line.startswith("#"):  # 下一个标题 → 本节结束
+                    break
+                s = line.strip()
+                if not s or s.startswith(">"):  # 空行 / 引导 blockquote 跳过
+                    continue
+                if s.startswith("（") or "待填" in s:  # 占位符跳过
+                    continue
+                return True
+        return False
+
     # 检查清单
     checks = {
         "status (alive|dead|departed|unknown)": {
@@ -329,6 +347,11 @@ def cmd_wizard(char_name: str):
             "value": fm.get("world_position", ""),
             "prompt": "该角色在世界结构中的位置？上层(掌权者/贵族)、下层(平民/贫民)、边缘(底层/下水道视角)、还是中心(决策圈/信息枢纽)？",
             "example": "边缘"
+        },
+        "前史": {
+            "value": "✓" if _section_has_content(body_after_fm, "前史") else "",
+            "prompt": "塑造该角色内核四维的关键经历是什么？≤150 字，只写长出欲望/恐惧/底线的那几件事，不是流水账生平。",
+            "example": "七岁那年父亲战场犹豫害死同袍，全家蒙羞、她被迫弃武"
         },
         "核心欲望": {
             "value": "✓" if _body_has_field(body_after_fm, "核心欲望") else "",
