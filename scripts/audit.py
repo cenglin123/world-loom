@@ -38,7 +38,7 @@ def _strip_noise(text: str) -> str:
 # Root-level instruction files always checked.
 _ROOT_DOC_FILES = [
     "AGENTS.md",
-    "STRUCTURE.md",
+    "docs/STRUCTURE.md",
 ]
 
 # Dynamic discovery: all .md files under docs/ (excluding plans/ and __pycache__).
@@ -191,7 +191,7 @@ def _check_dead_links() -> list[dict[str, Any]]:
 
 def _structure_table_links() -> list[tuple[str, str, int]]:
     """Parse STRUCTURE.md index table: return (rel_path, label, lineno)."""
-    path = ROOT / "STRUCTURE.md"
+    path = ROOT / "docs" / "STRUCTURE.md"
     if not path.is_file():
         return []
     entries: list[tuple[str, str, int]] = []
@@ -215,7 +215,7 @@ def _structure_table_links() -> list[tuple[str, str, int]]:
 def _check_structure() -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
 
-    if not _exists("STRUCTURE.md"):
+    if not _exists("docs/STRUCTURE.md"):
         return results
 
     index_entries = _structure_table_links()
@@ -227,7 +227,7 @@ def _check_structure() -> list[dict[str, Any]]:
             results.append({
                 "kind": "structure",
                 "status": "missing",
-                "source": "STRUCTURE.md",
+                "source": "docs/STRUCTURE.md",
                 "line": lineno,
                 "target": target,
             })
@@ -235,7 +235,7 @@ def _check_structure() -> list[dict[str, Any]]:
             results.append({
                 "kind": "structure",
                 "status": "ok",
-                "source": "STRUCTURE.md",
+                "source": "docs/STRUCTURE.md",
                 "line": lineno,
                 "target": target,
             })
@@ -256,7 +256,7 @@ def _check_structure() -> list[dict[str, Any]]:
             results.append({
                 "kind": "structure",
                 "status": "orphan",
-                "source": "STRUCTURE.md",
+                "source": "docs/STRUCTURE.md",
                 "line": 0,
                 "target": rel,
             })
@@ -522,11 +522,11 @@ def _format_text(results: list[dict[str, Any]], verbose: bool = False) -> str:
         elif kind == "structure":
             if r["status"] == "orphan":
                 lines_out.append(
-                    f"[{glyph:<6}] STRUCTURE.md — not in index: {r['target']}"
+                    f"[{glyph:<6}] docs/STRUCTURE.md — not in index: {r['target']}"
                 )
             elif r["status"] == "missing":
                 lines_out.append(
-                    f"[{glyph:<6}] STRUCTURE.md:{r['line']} -> {r['target']} (file missing)"
+                    f"[{glyph:<6}] docs/STRUCTURE.md:{r['line']} -> {r['target']} (file missing)"
                 )
         elif kind == "drift":
             lines_out.append(f"[{glyph:<6}] {r['detail']}")

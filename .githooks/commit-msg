@@ -10,7 +10,7 @@ GOVERNANCE_FILES=(
     "00_世界观/核心设定.md"
     ".githooks/pre-commit"
     ".githooks/commit-msg"
-    "STRUCTURE.md"
+    "docs/STRUCTURE.md"
     "docs/audit-checklist.md"
     "05_复盘/reviewer-protocol.md"
     "05_复盘/reviewer-prompt-template.md"

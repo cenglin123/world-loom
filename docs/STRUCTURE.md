@@ -9,7 +9,7 @@
 | **AI 写作已知陷阱** | [docs/pitfalls.md](docs/pitfalls.md) |
 | **一致性审计清单** | [docs/audit-checklist.md](docs/audit-checklist.md) |
 | **当前任务状态** | [docs/CURRENT.md](docs/CURRENT.md) |
-| **变更记录** | [CHANGELOG.md](CHANGELOG.md) |
+| **变更记录** | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
 | **世界观·硬核心（locked）** | [00_世界观/核心设定.md](00_世界观/核心设定.md) |
 | **世界观·外围（可扩展）** | [00_世界观/外围设定.md](00_世界观/外围设定.md) |
 | **故事大纲（主线 + 分卷）** | [01_大纲/主线.md](01_大纲/主线.md) |
