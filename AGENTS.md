@@ -30,18 +30,25 @@
 - 强制覆盖：`python scripts/agent_links.py repair --force`
 - 模式：copy
 
-## 信息导航
-
-> 完整的项目地图见 **[docs/STRUCTURE.md](docs/STRUCTURE.md)**——所有文件/目录/工具的统一索引。AGENTS.md 只保留不在 STRUCTURE 中的高频入口：
+## 信息导航（即文档索引）
 
 | 需要什么 | 去哪找 |
 |---------|--------|
-| **完整文件地图** | [docs/STRUCTURE.md](docs/STRUCTURE.md) |
-| 当前任务状态（compact 恢复必读） | [docs/CURRENT.md](docs/CURRENT.md) |
-| 复杂任务计划 | [docs/plans/active/](docs/plans/active/) |
-| 人物创建向导 | `python scripts/check_tags.py wizard <角色名>`（见下方"人物创建流程"） |
-| 四阶段工作流 | 见下方"四阶段工作流"节 |
-| 本方法论依据 | 融合 converge 迭代收敛质量控制 + 端木灵星传统写作技法 + 业界 AI 长篇写作实践 |
+| 项目总览 + 世界观梗概 + 关键设计决策 | [docs/overview.md](docs/overview.md) |
+| 叙述约定（视角/时态/文风/端木技法） | [docs/writing-style.md](docs/writing-style.md) |
+| AI 写作已知陷阱（本项目专属） | [docs/pitfalls.md](docs/pitfalls.md) |
+| 一致性审计清单 | [docs/audit-checklist.md](docs/audit-checklist.md) |
+| 复杂任务计划 | [docs/plans/](docs/plans/active/) |
+| 当前任务状态 | [docs/CURRENT.md](docs/CURRENT.md) |
+| 变更记录 | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
+| 世界观·硬核心（locked，改需治理审批） | [00_世界观/核心设定.md](00_世界观/核心设定.md) |
+| 世界观·外围（可扩展） | [00_世界观/外围设定.md](00_世界观/外围设定.md) |
+| 故事大纲（主线 + 分卷） | [01_大纲/主线.md](01_大纲/主线.md) |
+| 人物（人设 / 记忆 / 关系三层框架 + 标签索引） | [02_人物/_索引.md](02_人物/_索引.md) + 关系数据源 [02_人物/relationships.json](02_人物/relationships.json) + 标签校验 `scripts/check_tags.py` |
+| 伏笔登记（open/closed 状态机） | [04_伏笔/伏笔登记表.md](04_伏笔/伏笔登记表.md) |
+| 正文章节 | [03_正文/README.md](03_正文/README.md) |
+| 阶段性复盘 + converge 协议 + reviewer 模板 | [05_复盘/README.md](05_复盘/README.md) → [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md) → [05_复盘/reviewer-prompt-template.md](05_复盘/reviewer-prompt-template.md) |
+| 本方法论依据 | 四阶段工作流（见下方"四阶段工作流"节），融合 converge 迭代收敛质量控制 + 端木灵星传统写作技法 + 业界 AI 长篇写作实践 |
 
 ## 人物创建流程
 
@@ -68,7 +75,7 @@
 **已脚本化 — 有机执行**（绕过会被 pre-commit 拒绝）：
 
 - **AGENTS.md 同步**：`CLAUDE.md` / `GEMINI.md` 必须与 `AGENTS.md` 内容一致。编辑后跑 `python scripts/agent_links.py repair`，pre-commit hook 强制检查。
-- **治理文档修改保护**：`.githooks/commit-msg` 检查以下治理文件是否被修改——`AGENTS.md`、`00_世界观/核心设定.md`、`.githooks/pre-commit`、`.githooks/commit-msg`、`docs/STRUCTURE.md`、`docs/audit-checklist.md`、`05_复盘/reviewer-protocol.md`、`05_复盘/reviewer-prompt-template.md`。若修改且 commit message 不含 `[governance]` 标记，提交被**拒绝**。治理文档的完整清单与保护细则见 `.githooks/commit-msg`。
+- **治理文档修改保护**：`.githooks/commit-msg` 检查以下治理文件是否被修改——`AGENTS.md`、`00_世界观/核心设定.md`、`.githooks/pre-commit`、`.githooks/commit-msg`、`docs/audit-checklist.md`、`05_复盘/reviewer-protocol.md`、`05_复盘/reviewer-prompt-template.md`。若修改且 commit message 不含 `[governance]` 标记，提交被**拒绝**。治理文档的完整清单与保护细则见 `.githooks/commit-msg`。
 - **伏笔表格式完整**：pre-commit 检查 `04_伏笔/伏笔登记表.md` 的 markdown 表格结构完整性（列数一致、状态字段合法值）。
 - **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
 - **人物卡更新提醒**：提交正文/上下文包时，pre-commit 扫描在场角色，若其人物卡未被同期修改 → 打印提醒（不阻断，确认无误后可直接提交）。
@@ -138,7 +145,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 复盘分两层：先跑机械脚本，再跑人工 converge。
 
 **机械层**（脚本自动执行）：
-- `python scripts/audit.py dead-links` + `python scripts/audit.py structure` — 断链 / STRUCTURE 完整性（不跑 drift/memory 等代码项目检查项）
+- `python scripts/audit.py dead-links` — 断链检查（不跑 drift/memory 等代码项目检查项）
 - AGENTS.md 同步状态：`python scripts/agent_links.py check`
 - `python scripts/check_foreshadowing.py` — 伏笔 open/closed 状态 + 超期检测
 - `python scripts/relationship.py check` — 关系数据与角色文件一致性

@@ -6,8 +6,7 @@
 
 - [ ] AGENTS.md / CLAUDE.md / GEMINI.md 同步一致：`python scripts/agent_links.py check`
 - [ ] 文档内链无死链：`python scripts/audit.py dead-links`
-- [ ] docs/STRUCTURE.md 索引与实际文件一致：`python scripts/audit.py structure`
-- [ ] AGENTS.md 行数在 ~200 行以内：`python scripts/audit.py structure` 末尾含行数报告
+- [ ] AGENTS.md 行数在 ~200 行以内：`python scripts/audit.py dead-links` 末端含行数报告
 
 ## 小说专项审计（agent 手动裁决）
 
