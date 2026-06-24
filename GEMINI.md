@@ -59,7 +59,7 @@
 3. 用户确认后，将内容写入 `<角色名>.md` 的对应字段（frontmatter 或正文）
 4. 填写完成后，`python scripts/check_tags.py check` 校验完整性 → `python scripts/check_tags.py _index` 更新索引
 
-> wizard 命令检查 15 个字段：6 个 frontmatter 值（status/role/age/faction/first_appearance/world_position）+ 1 个前史（塑造内核的关键事件）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 4 类标签（所属/能力/等级/擅用）。任何字段留空都会被列出，附带引导提示和示例值。
+> wizard 命令检查 16 个字段：7 个 frontmatter 值（status/role/age/faction/first_appearance/world_position/style_register）+ 1 个前史（塑造内核的关键事件）+ 4 个内核维度（欲望/恐惧/底线/应激）+ 4 类标签（所属/能力/等级/擅用）。任何字段留空都会被列出，附带引导提示和示例值。
 
 ## 行为规则
 
@@ -120,7 +120,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 审过后，为每场戏整理**写前上下文包**（约 300-500 字），写入 `03_正文/第N卷/_准备_第M章.md`（写入前若父目录不存在，先创建）：
 
 - 本场大纲 + 为什么重要
-- 在场角色：内核要义 + 最近 3-5 条 L2 记忆 + 未解决问题 + 两两关系摘要（从 `02_人物/relationships.json` 读取，用 `python scripts/relationship.py show <角色名>` 获取）
+- 在场角色：内核要义 + 文风注册（`style_register` → `docs/writing-style.md` 文风注册表对应项）+ 最近 3-5 条 L2 记忆 + 未解决问题 + 两两关系摘要（从 `02_人物/relationships.json` 读取，用 `python scripts/relationship.py show <角色名>` 获取）
 - 场景初始状态
 - **达成断言**（可被 reviewer 核验的具体目标，每场至少 1 条主断言 + 覆盖在场角色的核心欲望/恐惧之一）
 
@@ -180,6 +180,8 @@ role: protagonist    # protagonist|antagonist|deuteragonist|supporting|minor
 age: 
 faction:             # 所属/阵营
 first_appearance:    # 卷/章
+world_position:      # 上层|下层|边缘|中心
+style_register:      # 文风注册（对应 docs/writing-style.md 文风注册表）
 tags:
   - 所属/<组织名>
   - 能力/<能力流派>
