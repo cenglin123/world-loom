@@ -111,8 +111,12 @@ def check_readiness(issues: list):
     else:
         issues.append("[H1-BLOCK] docs/writing-style.md 不存在")
 
-def check_chapters(chapter_files: list[Path], issues: list):
-    """D3: 章节 frontmatter 完整性 + 时空一致性。"""
+def check_chapters(chapter_files: list[Path], issues: list, context_files: list | None = None):
+    """D3: 章节 frontmatter 完整性 + 时空一致性。
+
+    context_files: 只读种子章节（如已提交的旧章节）。仅用于填充时空表以检测
+    跨 commit 的"同日两地"冲突，不对其本身做 frontmatter 校验、不产出 issue。
+    """
     chars = _list_character_files()
     # 构建角色 status 映射
     char_status = {}
@@ -123,6 +127,17 @@ def check_chapters(chapter_files: list[Path], issues: list):
 
     # {in_world_date: {角色: location}}
     spacetime: dict[str, dict[str, str]] = defaultdict(dict)
+
+    # 只读种子：已提交章节，建立既有时空占用（不报其自身 issue）
+    for cf in sorted(context_files or []):
+        fm = _parse_frontmatter(cf)
+        if not fm:
+            continue
+        loc = fm.get("location", "")
+        date = fm.get("in_world_date", "")
+        if date and loc:
+            for c in _parse_characters_present(fm.get("characters_present")):
+                spacetime[date].setdefault(c, loc)
 
     for cf in sorted(chapter_files):
         fm = _parse_frontmatter(cf)
@@ -179,6 +194,7 @@ def main():
         check_readiness(issues)
 
     # 收集章节文件
+    context_files = None  # 只读时空种子（仅 --staged 模式填充）
     if args.files:
         chapter_files = [Path(f) for f in args.files if Path(f).exists()]
     elif args.staged:
@@ -191,16 +207,23 @@ def main():
         chapter_files = [
             ROOT / f for f in staged
             if f.startswith("03_正文/") and f.endswith(".md")
-            and not "_准备_" in f and not "_审查_" in f
+            and not any(x in f for x in ("_准备_", "_审查_", "_审查后_"))
+        ]
+        # 只读种子：已提交章节（不在本次暂存内），用于跨 commit 同日两地检测
+        staged_set = set(chapter_files)
+        context_files = [
+            p for p in TEXT_DIR.rglob("第*章.md")
+            if not any(x in p.name for x in ("_准备_", "_审查_", "_审查后_"))
+            and p not in staged_set
         ]
     else:
         chapter_files = sorted(
             p for p in TEXT_DIR.rglob("第*章.md")
-            if "_准备_" not in p.name and "_审查_" not in p.name
+            if not any(x in p.name for x in ("_准备_", "_审查_", "_审查后_"))
         )
 
     if chapter_files:
-        check_chapters(chapter_files, issues)
+        check_chapters(chapter_files, issues, context_files=context_files)
 
     # 输出
     blocks = [i for i in issues if "[BLOCK]" in i or "[H1-BLOCK]" in i]
