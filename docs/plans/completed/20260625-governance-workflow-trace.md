@@ -228,6 +228,6 @@ pre-commit 第 6 段据此重写：先按白名单判定"需痕迹"的章节集 
 - [x] 建议 1+2+4 ultraverge（2026-06-25）：3 reviewer 一致 `阻断需修复` → 完整收敛 → v2 定稿（B1 白名单 / B2 提醒+诚实 / B3 粒度分级 / B4 强制力分级 / B5a 抽 locked / B5b 单一数据源 / B6 schema 对齐）。retrospective: `.converge/done/20260625-gov-124/`
 - [x] 按 v2 实现建议 1+2+4（2026-06-25）：新建 `docs/style-locked.md`；改 `.githooks/*`、`check_chapters.py`、`AGENTS.md`(+CLAUDE/GEMINI)、`writing-style.md`、`reviewer-*`
 - [x] 验证计划执行（2026-06-25）：B1 白名单三章用例 ✓、pre-commit 第 6 段粒度/强制力/豁免 ✓、双钩子语法 ✓、三文件同步 ✓；独立验收 reviewer `可执行` 0 阻断 0 回归
-- [ ] 提交（带 `[governance]`）+ CHANGELOG + 计划移 completed/
+- [x] 提交 `24e2c20`（带 `[governance]`）+ CHANGELOG + 计划移 completed/（2026-06-25）
 - [ ] 验证计划执行
 - [ ] CHANGELOG 记录，计划移 completed/

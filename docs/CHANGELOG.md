@@ -2,6 +2,15 @@
 
 > 倒序排列，最新在前。操作：python scripts/changelog.py titles/show/add/recent
 
+## 2026-06-25
+
+### 四阶段工作流留痕机制 v2（建议 1+2+4 经 ultraverge 收敛）
+
+#### 变更内容
+- 白名单豁免（缺 model 须 author:human）；_准备_ 阻断、_审查_/_审查后_ 提醒；抽 docs/style-locked.md 单独治理保护；治理清单单一数据源；_审查后_ schema 对齐 reviewer-protocol；诚实标注 --no-verify/commit-time-only 盲区
+
+---
+
 ## 2026-06-24
 
 ### 归档记忆召回设计决策（暂缓实现）
