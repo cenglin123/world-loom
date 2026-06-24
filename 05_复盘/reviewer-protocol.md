@@ -18,7 +18,7 @@
 4. 所有涉及角色的 `02_人物/<角色名>.md`
 5. `04_伏笔/伏笔登记表.md`
 6. 本卷每场的上下文包（`03_正文/第N卷/_准备_*.md`）——用于判读达成断言是否兑现
-7. `docs/writing-style.md`（技法 rubric）+ `docs/audit-checklist.md`（小说专项审计项）
+7. `docs/style-locked.md`（视角/时态/文风注册表，漂移基线）+ `docs/writing-style.md`（技法 rubric）+ `docs/audit-checklist.md`（小说专项审计项）
 
 ## 阻断分类
 
@@ -66,4 +66,4 @@ flags:
 
 - AGENTS.md §④ 阶段复盘引用本文件作为 converge 操作指南
 - AGENTS.md 完工检查清单的"正文一致性"项引用本文件的阻断分类作为判据
-- 写后审（§③）是本协议的**单场轻量版**——素材只含当前场，阻断分类同上，最多 3 轮
+- 写后审（§③）是本协议的**单场轻量版**——素材只含当前场，阻断分类同上，最多 3 轮。结论落盘 `03_正文/第N卷/_审查后_第M章.md`（schema 见 AGENTS.md「文件格式约定」；verdict 取值同本协议 = 可收敛|需修复）。该 artifact 仅证留痕，不证审查质量。

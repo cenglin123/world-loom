@@ -18,7 +18,7 @@
 1. `00_世界观/核心设定.md` 的世界法则段**非空**（不是"待填写"）
 2. `01_大纲/主线.md` 的主线一句话**已填写**
 3. `02_人物/_索引.md` 角色清单**至少有一个实际角色**（不含示例/模板行）
-4. `docs/writing-style.md` 的视角和时态段**已选定**（非"待选择"）
+4. `docs/style-locked.md` 的视角和时态段**已选定**（非"待选择"）
 
 > 此哨兵是硬约束——宪法审查、写前准备、复盘 converge 全部依赖这三项有实质内容。设定未就绪时推进正文产生的漂移无法被任何机制兜住。
 > 三项失败时 → 引导用户按 CURRENT.md '下一步'清单逐项填写；世界法则格式见 00_世界观/核心设定.md、人物卡格式见 02_人物/人物模板.md。
@@ -35,7 +35,8 @@
 | 需要什么 | 去哪找 |
 |---------|--------|
 | 项目总览 + 世界观梗概 + 关键设计决策 | [docs/overview.md](docs/overview.md) |
-| 叙述约定（视角/时态/文风/端木技法） | [docs/writing-style.md](docs/writing-style.md) |
+| 叙述约定·锁定层（视角/时态/文风注册表，治理保护） | [docs/style-locked.md](docs/style-locked.md) |
+| 叙述约定·工艺层（文风倾向/端木技法/以筠法则，轻量） | [docs/writing-style.md](docs/writing-style.md) |
 | AI 写作已知陷阱（本项目专属） | [docs/pitfalls.md](docs/pitfalls.md) |
 | 一致性审计清单 | [docs/audit-checklist.md](docs/audit-checklist.md) |
 | 复杂任务计划 | [docs/plans/](docs/plans/active/) |
@@ -75,11 +76,12 @@
 **已脚本化 — 有机执行**（绕过会被 pre-commit 拒绝）：
 
 - **AGENTS.md 同步**：`CLAUDE.md` / `GEMINI.md` 必须与 `AGENTS.md` 内容一致。编辑后跑 `python scripts/agent_links.py repair`，pre-commit hook 强制检查。
-- **治理文档修改保护**：`.githooks/commit-msg` 检查以下治理文件是否被修改——`AGENTS.md`、`00_世界观/核心设定.md`、`.githooks/pre-commit`、`.githooks/commit-msg`、`docs/audit-checklist.md`、`05_复盘/reviewer-protocol.md`、`05_复盘/reviewer-prompt-template.md`。若修改且 commit message 不含 `[governance]` 标记，提交被**拒绝**。治理文档的完整清单与保护细则见 `.githooks/commit-msg`。
+- **治理文档修改保护**：`.githooks/commit-msg` 的 `GOVERNANCE_FILES` 数组是**治理文件清单的唯一权威来源**。提交触达其中任一文件且 commit message 不含 `[governance]` 标记 → 提交被**拒绝**。本文不再重复枚举（避免多源漂移）——完整清单见 `.githooks/commit-msg`。
 - **伏笔表格式完整**：pre-commit 检查 `04_伏笔/伏笔登记表.md` 的 markdown 表格结构完整性（列数一致、状态字段合法值）。
 - **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
 - **人物卡更新提醒**：提交正文/上下文包时，pre-commit 扫描在场角色，若其人物卡未被同期修改 → 打印提醒（不阻断，确认无误后可直接提交）。
-- **章节校验（就绪自检 + 时空一致性）**：`python scripts/check_chapters.py --staged` — 提交正文时强制：(a) 世界观/大纲/人物非空；(b) characters_present 引用的角色都存在；(c) status=dead 的角色不出场；(d) 同一 in_world_date 下角色不出现于两个地点。
+- **章节校验（就绪自检 + 时空一致性 + 作者白名单）**：`python scripts/check_chapters.py --staged` — 提交正文时强制：(a) 世界观/大纲/人物非空；(b) characters_present 引用的角色都存在；(c) status=dead 的角色不出场；(d) 同一 in_world_date 下角色不出现于两个地点（跨已提交章节）；(e) 章节须有 `model` 字段，否则须显式 `author: human`（封"沉默漏标"，杜绝"漏标 model 反而免检"）。
+- **工作流痕迹（commit-time 留痕兜底）**：pre-commit 对 agent 章节强制配套 `_准备_第M章.md`（缺失**阻断**）；`_审查_`（可卷级，frontmatter `review_ref:` 指向）与 `_审查后_第M章.md` 缺失仅**提醒**。声明 `author: human` 的用户手写章节整体豁免。**此为 commit 时刻留痕，对 `--no-verify` 无效、不覆盖会话期——过程合规的实质质量由 §④ 复盘 converge 兜底，不由钩子保证。**
 - **标签完整性**：`python scripts/check_tags.py check` — 每个角色文件必须含四类标签（所属/能力/等级/擅用），pre-commit 强制检查。卷末跑 `regenerate` 重建 `_索引.md` 标签汇总视图。
 
 **流程强制 — 完工清单兜底**（无脚本强制，但必须在完工检查清单逐项确认）：
@@ -113,14 +115,14 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 - **与已埋伏笔/人物记忆/主线有张力（非违宪但不自洽）** → 预检 flag + 提示用户确认
 - **方向模糊/歧义/不在设定覆盖范围** → 向用户提问澄清，不自行推断
 
-审查结论写入 `03_正文/第N卷/_审查_第M章.md`（frontmatter 标注审查日期 + 判据 + 结论），供跨会话追溯。写入前若父目录（`03_正文/第N卷/`）不存在，先创建。
+审查结论写入 `03_正文/第N卷/_审查_第M章.md`（frontmatter 标注审查日期 + 判据 + 结论），供跨会话追溯。写入前若父目录（`03_正文/第N卷/`）不存在，先创建。**一次宪法审查可覆盖多章**——可改写卷级 `03_正文/第N卷/_审查_第N卷.md`，并在被覆盖各章 frontmatter 用 `review_ref: _审查_第N卷.md` 指向；pre-commit 据此判定留痕（提醒级，不逐章强制），不必为每章复制一份审查。
 
 ### ② 写前准备
 
 审过后，为每场戏整理**写前上下文包**（约 300-500 字），写入 `03_正文/第N卷/_准备_第M章.md`（写入前若父目录不存在，先创建）：
 
 - 本场大纲 + 为什么重要
-- 在场角色：内核要义 + 文风注册（`style_register` → `docs/writing-style.md` 文风注册表对应项）+ 最近 3-5 条 L2 记忆 + 未解决问题 + 两两关系摘要（从 `02_人物/relationships.json` 读取，用 `python scripts/relationship.py show <角色名>` 获取）
+- 在场角色：内核要义 + 文风注册（`style_register` → `docs/style-locked.md` 文风注册表对应项）+ 最近 3-5 条 L2 记忆 + 未解决问题 + 两两关系摘要（从 `02_人物/relationships.json` 读取，用 `python scripts/relationship.py show <角色名>` 获取）
 - 场景初始状态
 - **达成断言**（可被 reviewer 核验的具体目标，每场至少 1 条主断言 + 覆盖在场角色的核心欲望/恐惧之一）
 
@@ -138,6 +140,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 - **通过阈值**：0 阻断项，flag 项 ≤ 2
 - **不通过** → 输出阻断清单（具体到人设第 X 条 / 记忆第 Y 条 / 世界观第 Z 条）→ 原写作 agent 修复 → reviewer 二审 → 最多 3 轮否则升级用户裁决
 - **通过** → 进入下一场或复盘
+- **写后审结论落盘**：结论写入 `03_正文/第N卷/_审查后_第M章.md`（frontmatter schema 见「文件格式约定」）。**该文件存在仅证明留痕、不证明审查质量或独立性**——质量由 §④ 复盘 converge 兜底；缺失为提醒级（不阻断提交）。
 - reviewer 启动：将 `05_复盘/reviewer-prompt-template.md` 的模板中 `<>` 替换为实际内容，复制到新对话窗口即可 spawn 独立 reviewer
 
 ### ④ 阶段复盘（卷结束时）
@@ -164,8 +167,8 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 
 ## 写作风格约定
 
-详见 [docs/writing-style.md](docs/writing-style.md)。简述：
-- 视角、时态、文风倾向已在该文档定义
+详见 [docs/style-locked.md](docs/style-locked.md)（视角/时态/文风注册表，治理锁定）+ [docs/writing-style.md](docs/writing-style.md)（文风倾向/技法，轻量）。简述：
+- 视角、时态、文风注册表在 style-locked.md 定义；文风倾向与端木技法在 writing-style.md
 - 端木灵星技法（矛盾冲突五路径、开篇三章强化主角、章末钩子、伏笔快速回收）作为 reviewer rubric 的"好看"可操作抓手
 
 ## 文件格式约定
@@ -181,7 +184,7 @@ age:
 faction:             # 所属/阵营
 first_appearance:    # 卷/章
 world_position:      # 上层|下层|边缘|中心
-style_register:      # 文风注册（对应 docs/writing-style.md 文风注册表）
+style_register:      # 文风注册（对应 docs/style-locked.md 文风注册表）
 tags:
   - 所属/<组织名>
   - 能力/<能力流派>
@@ -206,14 +209,35 @@ location: "映月湖"
 in_world_date: "大业三年·霜月·初七"
 word_count: 3240
 status: draft
+# author: human   # 仅用户手写章节声明；agent 章节用 model/generated_at，不写 author
 ---
 ```
+
+> 白名单判据：agent 章节须有 `model`/`generated_at`；用户手写章节须显式 `author: human`。二者皆无 → pre-commit 阻断（封"沉默漏标"）。
+
+### 写后审结论 frontmatter（`_审查后_第M章.md`）
+
+```yaml
+---
+model: <审稿 agent 模型>
+generated_at: 2026-06-25T10:00:00Z
+volume: 1
+chapter: 3
+verdict: 可收敛        # 可收敛 | 需修复（对齐 reviewer-protocol）
+blocking_count: 0
+flag_count: 1
+rounds: 1
+# covers: [3, 4, 5]    # 可选：一次写后审覆盖多章
+---
+```
+
+> 字段与值对齐既有约定（`model`/`generated_at`、verdict=可收敛|需修复）。此 artifact 存在仅证明留痕，**不证明审查质量/独立性**。
 
 ## 提交规范
 
 使用 Conventional Commit 风格：`feat:` / `fix:` / `chore:` 等。提交信息写清改了什么、为什么。
 
-**治理文档标记**：修改 `AGENTS.md`、`00_世界观/核心设定.md`、`.githooks/pre-commit` 时，commit message 必须含 `[governance]` 标记，否则 pre-commit 拒绝提交。
+**治理文档标记**：修改 `.githooks/commit-msg` 的 `GOVERNANCE_FILES` 清单内任一文件时，commit message 必须含 `[governance]` 标记，否则提交被拒绝。清单为唯一权威来源（见 `.githooks/commit-msg`），新增治理文件只改那一处。
 
 **及时提交**：完成一卷或关键场景后主动提交，避免 diff 膨胀。
 

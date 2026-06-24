@@ -11,6 +11,7 @@ GOVERNANCE_FILES=(
     ".githooks/pre-commit"
     ".githooks/commit-msg"
     "docs/audit-checklist.md"
+    "docs/style-locked.md"
     "05_复盘/reviewer-protocol.md"
     "05_复盘/reviewer-prompt-template.md"
 )

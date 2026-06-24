@@ -157,11 +157,63 @@ check_chapters(chapter_files, issues, context_files=context_files)
 
 ---
 
+## Ultraverge 收敛结果（v2 定稿，2026-06-25）
+
+> 3 独立 reviewer 一致 `阻断需修复`（artifacts: `.converge/done/20260625-gov-124/`）。下列 v2 **取代上方建议 1/2/4 的原始描述**；原描述保留作审查留痕。用户裁决：强制力度=「只 _准备_ 阻断，审查类降提醒」；writing-style 治理=「抽 locked 段单独保护」。
+
+### 建议 1-v2 — 工作流痕迹（白名单豁免 + 粒度分级 + 强制力分级）
+
+修复 B1/B3/B4。
+
+**a. 豁免改白名单（B1）**：不再用"有无 `model:`"做开关。`scripts/check_chapters.py` 增硬检查——staged `第M章.md` 若 frontmatter **既无 `model:` 又无 `author: human`** → `[BLOCK]`（"缺 model：agent 章节须标 model/generated_at，用户手写章节须显式 `author: human`"）。封死"沉默漏标"灰区，豁免必须主动声明。
+
+**b. 粒度分级（B3）**：
+- `_准备_第M章.md`：逐章、**阻断级**（写前上下文包，逐场，形式即足够）。
+- `_审查_`：允许卷级 `_审查_第N卷.md` 或区间，章节 frontmatter 用 `review_ref:` 指向覆盖本章的审查文件；钩子校验"被引用/覆盖本章的审查文件存在"，**不要求逐章同名**。
+
+**c. 强制力分级（B4，用户裁决）**：`_准备_` 缺失 → 阻断；`_审查_` 缺失 → **提醒级**（非阻断，与人物卡更新提醒同档）。过程合规质量交复盘 converge。
+
+pre-commit 第 6 段据此重写：先按白名单判定"需痕迹"的章节集 → `_准备_` 缺失进 BLOCK 列表、`_审查_`(via review_ref) 缺失进 REMINDER 列表。`author: human` 章节整体跳过。
+
+### 建议 2-v2 — `_审查后_` 提醒级 + 诚实标注 + schema 对齐
+
+修复 B2/B6。
+
+**a. 降为提醒级（B2，用户裁决）**：`_审查后_` 缺失 → 提醒，不阻断。
+**b. 诚实标注（B2）**：钩子输出与 AGENTS.md 文案明确"`_审查后_` 存在仅证明 artifact 落盘，**不证明审查质量/独立性**；质量由复盘 converge 兜底"。消除"存在=审过"的虚假安全感。
+**c. schema 对齐既有词汇（B6）**：frontmatter 用 `model:` / `generated_at:`（不另造 `reviewer_model`/`reviewed_at`）；`verdict` 取值对齐 reviewer-protocol = `可收敛 | 需修复`（不用 `通过|阻断`）。可选附 `covers:` 标注覆盖章节。
+
+### 建议 4-v2 — 抽 locked 段单独保护 + 治理清单单一数据源
+
+修复 B5a/B5b（取代原"整文件升治理"）。
+
+**a. 抽 locked 段（B5a，用户裁决）**：新建 `docs/style-locked.md`，迁入 writing-style.md 的「视角 / 时态 / 文风注册表」三段（硬参照）。`writing-style.md` 保留其余轻量叙事工艺，文件头改为指向 `style-locked.md`。
+- `.githooks/commit-msg` `GOVERNANCE_FILES` 加 **`docs/style-locked.md`**（而非整个 writing-style.md）。
+- `scripts/check_chapters.py` 就绪自检的"视角/时态"检查目标从 `writing-style.md` 改为 `style-locked.md`（H1-BLOCK 引用同步）。
+- `reviewer-prompt-template.md` 文风漂移检查参照改指 `style-locked.md`。
+
+**b. 治理清单单一数据源（B5b）**：以 `.githooks/commit-msg` 的 `GOVERNANCE_FILES` 数组为**唯一权威清单**；`AGENTS.md` 第 78 行**停止枚举**，改为"完整清单见 `.githooks/commit-msg`"指针（消除 P3-G 的多源漂移，新增治理文件只改一处）。
+
+### 跨切诚实性（3/3 共识）
+
+提案"治理/验证/落地"节 + AGENTS.md 须诚实标注：本机制是 **commit-time 留痕兜底**（抗 compact 价值真实），对 `--no-verify` 无效、且不覆盖会话期；工作流真实性的最终防线是 **§④ 复盘 converge**，非 commit 钩子。删除"无痕不可提交"等过度承诺措辞。
+
+### 勘误
+
+建议 4 落地时：`GOVERNANCE_FILES` 数组在 `.githooks/commit-msg`(8-16)；AGENTS.md/CLAUDE.md 是 prose——b 项正是消除这处双源。
+
+---
+
 ## 治理 / 验证 / 落地
 
 - **触及治理文档**：建议 1、2、4 改 `.githooks/*`、`AGENTS.md`、`reviewer-*`、`writing-style.md` → commit 须带 `[governance]`；按 converge skill，治理文档变更**应走 ultraverge**（≥3 reviewer + 收敛 + 设计审查）。建议 3 仅改 `check_chapters.py`，可走普通评议。
 - **AGENTS.md 同步**：只编辑 `AGENTS.md`，再 `python scripts/agent_links.py repair`。
-- **验证计划**：scratchpad 造带 `model:` 的假章节 + 缺配套，`git add` 后干跑 pre-commit 验阻断；补齐配套验放行；用户手写版（无 `model:`）验豁免。check_chapters 改完跑 `--staged` 造跨章节同日两地用例验证。
+- **验证计划（含 reviewer 要求的负向用例）**：
+  - 正向：带 `model:` 缺 `_准备_` → 阻断；补齐 → 放行。
+  - B1 负向：`第M章.md` 既无 `model:` 又无 `author: human` → 阻断（封沉默漏标）；标 `author: human` → 豁免。
+  - B3 负向：一份 `_审查_第N卷.md` 经 `review_ref:` 覆盖第 3-5 章 → 三章均放行（不强逐章同名）。
+  - `_审查_`/`_审查后_` 缺失 → 仅提醒、不阻断（确认 posture）。
+  - check_chapters `--staged` 跨章节同日两地用例（建议 3 回归）。
 
 ## 采纳粒度
 
@@ -171,8 +223,11 @@ check_chapters(chapter_files, issues, context_files=context_files)
 
 ## 进度
 
-- [x] 用户裁决建议 4 → **A 升为治理**（2026-06-25）
-- [x] 建议 3 落地（2026-06-25）：`check_chapters.py` 加 `context_files` 只读种子 + `--staged` 跨已提交章节比对 + 三处排除名单补 `_审查后_`。功能测试 4/4 通过（cross-commit 冲突捕获 / 旧 gap 复现 / 批内回归 / 排除过滤）。**未提交**
-- [ ] 建议 1+2+4 整体走 ultraverge
+- [x] 用户裁决建议 4 → A 升为治理（2026-06-25），后经 ultraverge B5a 细化为「抽 locked 段单独保护」
+- [x] 建议 3 落地并提交 `a5fc512`（2026-06-25）
+- [x] 建议 1+2+4 ultraverge（2026-06-25）：3 reviewer 一致 `阻断需修复` → 完整收敛 → v2 定稿（B1 白名单 / B2 提醒+诚实 / B3 粒度分级 / B4 强制力分级 / B5a 抽 locked / B5b 单一数据源 / B6 schema 对齐）。retrospective: `.converge/done/20260625-gov-124/`
+- [x] 按 v2 实现建议 1+2+4（2026-06-25）：新建 `docs/style-locked.md`；改 `.githooks/*`、`check_chapters.py`、`AGENTS.md`(+CLAUDE/GEMINI)、`writing-style.md`、`reviewer-*`
+- [x] 验证计划执行（2026-06-25）：B1 白名单三章用例 ✓、pre-commit 第 6 段粒度/强制力/豁免 ✓、双钩子语法 ✓、三文件同步 ✓；独立验收 reviewer `可执行` 0 阻断 0 回归
+- [ ] 提交（带 `[governance]`）+ CHANGELOG + 计划移 completed/
 - [ ] 验证计划执行
 - [ ] CHANGELOG 记录，计划移 completed/

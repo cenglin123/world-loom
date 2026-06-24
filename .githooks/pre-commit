@@ -107,5 +107,69 @@ if [ -n "$CHAPTER_STAGED" ] || echo "$STAGED" | grep -qE "^03_正文/"; then
     echo "[pre-commit] chapters ok"
 fi
 
+# —— 6. 四阶段工作流痕迹（v2：白名单豁免 + 粒度/强制力分级） ——
+# 仅 _准备_ 缺失阻断；_审查_/_审查后_ 缺失提醒（过程合规质量交复盘 converge）。
+# 用户手写章节在 frontmatter 声明 author: human 即整体豁免。
+# 注意：commit-time 留痕兜底，对 --no-verify 无效、不覆盖会话期——真实性最终靠 §④ 复盘。
+TRUE_CHAPTERS=$(echo "$STAGED" | grep -E "^03_正文/第.+卷/第[^/]+章\.md$" || true)
+if [ -n "$TRUE_CHAPTERS" ]; then
+    BLOCKERS=""
+    REMINDERS=""
+    for ch in $TRUE_CHAPTERS; do
+        [ -f "$ch" ] || continue
+        # 白名单豁免：用户手写章节显式 author: human
+        if grep -qE "^author:[[:space:]]*human" "$ch"; then continue; fi
+        dir=$(dirname "$ch")
+        base=$(basename "$ch" .md)        # 第M章
+
+        # _准备_ 逐章、阻断级
+        prep="$dir/_准备_${base}.md"
+        if [ ! -f "$prep" ] && ! echo "$STAGED" | grep -qF "$prep"; then
+            BLOCKERS="$BLOCKERS\n  缺 $prep （写前上下文包）"
+        fi
+
+        # _审查_ 卷级/章级/review_ref 任一覆盖即可，提醒级
+        review_ok=""
+        ref=$(grep -E "^review_ref:" "$ch" | head -1 | sed -E 's/^review_ref:[[:space:]]*//' | tr -d "\"' \r")
+        if [ -n "$ref" ] && { [ -f "$dir/$ref" ] || [ -f "03_正文/$ref" ] || [ -f "$ref" ]; }; then
+            review_ok=1
+        fi
+        if [ -z "$review_ok" ] && { [ -f "$dir/_审查_${base}.md" ] || echo "$STAGED" | grep -qF "$dir/_审查_${base}.md"; }; then
+            review_ok=1
+        fi
+        if [ -z "$review_ok" ]; then
+            REMINDERS="$REMINDERS\n  缺 ${base} 的宪法审查留痕（_审查_${base}.md 或 frontmatter review_ref 指向的卷级文件）"
+        fi
+
+        # _审查后_ 写后审，提醒级
+        post="$dir/_审查后_${base}.md"
+        if [ ! -f "$post" ] && ! echo "$STAGED" | grep -qF "$post"; then
+            REMINDERS="$REMINDERS\n  缺 $post （写后 reviewer 结论；存在仅证留痕、不证审查质量）"
+        fi
+    done
+
+    if [ -n "$BLOCKERS" ]; then
+        echo ""
+        echo "============================================"
+        echo "[BLOCK] 以下 agent 章节缺写前准备包（_准备_）："
+        echo -e "$BLOCKERS"
+        echo ""
+        echo "用户手写章节请在 frontmatter 声明 author: human 以豁免本检查。"
+        echo "============================================"
+        exit 1
+    fi
+    if [ -n "$REMINDERS" ]; then
+        echo ""
+        echo "============================================"
+        echo "[REMINDER] 工作流痕迹提示（不阻断）："
+        echo -e "$REMINDERS"
+        echo ""
+        echo "宪法审查/写后审的实质质量由复盘 converge 兜底；此处仅提示留痕缺失。"
+        echo "确认无误后可直接提交。"
+        echo "============================================"
+    fi
+    echo "[pre-commit] workflow artifacts ok"
+fi
+
 echo "[pre-commit] all checks passed"
 exit 0

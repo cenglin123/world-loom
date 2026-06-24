@@ -21,7 +21,7 @@ TEXT_DIR = ROOT / "03_正文"
 WORLD_FILE = ROOT / "00_世界观" / "核心设定.md"
 OUTLINE_FILE = ROOT / "01_大纲" / "主线.md"
 INDEX_FILE = CHAR_DIR / "_索引.md"
-WRITING_STYLE_FILE = ROOT / "docs" / "writing-style.md"
+STYLE_LOCKED_FILE = ROOT / "docs" / "style-locked.md"  # 视角/时态锁定层（就绪自检参照）
 
 # ── helpers ──────────────────────────────────────────────
 
@@ -104,12 +104,12 @@ def check_readiness(issues: list):
     if not chars:
         issues.append("[H1-BLOCK] 02_人物/ 下无任何实际角色文件（仅有模板/索引）")
 
-    # 检查 writing-style.md 有实质内容（视角/时态段已选定）
-    if WRITING_STYLE_FILE.exists():
-        if not _body_has_content(WRITING_STYLE_FILE):
-            issues.append("[H1-BLOCK] docs/writing-style.md 通篇为待填写/待选择，缺少实质内容")
+    # 检查 style-locked.md 有实质内容（视角/时态段已选定）
+    if STYLE_LOCKED_FILE.exists():
+        if not _body_has_content(STYLE_LOCKED_FILE):
+            issues.append("[H1-BLOCK] docs/style-locked.md 视角/时态段仍为待选择，缺少实质内容")
     else:
-        issues.append("[H1-BLOCK] docs/writing-style.md 不存在")
+        issues.append("[H1-BLOCK] docs/style-locked.md 不存在")
 
 def check_chapters(chapter_files: list[Path], issues: list, context_files: list | None = None):
     """D3: 章节 frontmatter 完整性 + 时空一致性。
@@ -151,6 +151,14 @@ def check_chapters(chapter_files: list[Path], issues: list, context_files: list 
                 issues.append(f"[WARN] {cf.relative_to(ROOT)}: 缺少必填字段 '{field}'")
         if "word_count" not in fm:
             issues.append(f"[INFO] {cf.relative_to(ROOT)}: 建议填写 word_count")
+
+        # 白名单豁免判据（封"沉默漏标"）：agent 章节须有 model；
+        # 用户手写章节须显式 author: human，否则一律 BLOCK。
+        if not fm.get("model") and fm.get("author", "") != "human":
+            issues.append(
+                f"[BLOCK] {cf.relative_to(ROOT)}: 缺 model 字段——agent 生成章节须标 "
+                f"model/generated_at；用户手写章节须显式 author: human"
+            )
 
         # 解析出场角色
         present = _parse_characters_present(fm.get("characters_present"))
@@ -196,7 +204,7 @@ def main():
     # 收集章节文件
     context_files = None  # 只读时空种子（仅 --staged 模式填充）
     if args.files:
-        chapter_files = [Path(f) for f in args.files if Path(f).exists()]
+        chapter_files = [Path(f).resolve() for f in args.files if Path(f).exists()]
     elif args.staged:
         import subprocess
         result = subprocess.run(
