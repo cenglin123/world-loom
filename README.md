@@ -11,7 +11,7 @@
 ## 快速开始
 
 ### 人类作者
-1. 打开 [AGENTS.md](AGENTS.md)，让 agent 引导你完成所有设定——**写作前先 `git checkout -b writing`**
+1. 打开 [AGENTS.md](AGENTS.md)，让 agent 引导你——**如果在 main 分支上开始写作，agent 会自动提醒切换**
 2. 想创建角色？告诉 agent，它会跑 `wizard` 逐字段带你填
 3. 想推进剧情？告诉 agent 方向，它会跑宪法审查 → 写前准备 → 执行 → 复盘
 

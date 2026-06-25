@@ -111,6 +111,18 @@ def check_readiness(issues: list):
     else:
         issues.append("[H1-BLOCK] docs/style-locked.md 不存在")
 
+    # 分支检测（提醒级，不阻断）
+    import subprocess
+    try:
+        branch = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True, text=True, cwd=str(ROOT), timeout=5
+        ).stdout.strip()
+        if branch in ("main", "master"):
+            issues.append("[INFO] 当前在模板分支（main/master）——写作前请 git checkout -b writing（或 git checkout writing）")
+    except Exception:
+        pass  # 非 git 环境则跳过
+
 def check_chapters(chapter_files: list[Path], issues: list, context_files: list | None = None):
     """D3: 章节 frontmatter 完整性 + 时空一致性。
 
