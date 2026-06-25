@@ -6,25 +6,27 @@ set -e
 # —— 0. main 分支内容阻断 ——
 BRANCH=$(git branch --show-current)
 if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-    # 扫描是否有写作内容（人物/章节/设定填写）
+    # 白名单检测——模板分支上，内容目录只允许白名单文件存在
     HAS_CONTENT=""
-    # 有实际角色文件（非模板/索引）
-    for f in 02_人物/*.md; do
-        [ -f "$f" ] || continue
-        name=$(basename "$f" .md)
-        case "$name" in _索引|人物模板|README) continue ;; esac
+    # 02_人物/：仅允许 _索引.md / 人物模板.md / relationships.json
+    for f in 02_人物/*; do
+        [ -e "$f" ] || continue
+        name=$(basename "$f")
+        case "$name" in _索引.md|人物模板.md|relationships.json) continue ;; esac
         HAS_CONTENT="$HAS_CONTENT  $f"
     done
-    # 有正文章节
-    if ls 03_正文/第*卷/*.md 2>/dev/null | grep -qvE '(README|_准备_|_审查)'; then
-        HAS_CONTENT="$HAS_CONTENT  03_正文/章节"
-    fi
-    # 世界观已填写（用就绪自检脚本的判据）
+    # 03_正文/：仅允许 README.md
+    for f in 03_正文/*; do
+        [ -e "$f" ] || continue
+        name=$(basename "$f")
+        case "$name" in README.md) continue ;; esac
+        HAS_CONTENT="$HAS_CONTENT  $f"
+    done
+    # 00_世界观/核心设定.md：仅允许模板占位（body_has_content 判定）
     if python scripts/check_chapters.py --readiness 2>/dev/null | grep -q "H1-BLOCK"; then
         true  # 就绪自检失败 = 无内容 = 安全
     else
-        # 就绪自检通过（或角色之外项通过）= 有实质内容
-        HAS_CONTENT="$HAS_CONTENT  [就绪自检通过]"
+        HAS_CONTENT="$HAS_CONTENT  [就绪自检通过——核心设定/大纲/角色/文风基线已填写]"
     fi
 
     if [ -n "$HAS_CONTENT" ]; then
