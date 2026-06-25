@@ -20,6 +20,7 @@
 2. 接到"推进剧情"任务 → 先跑就绪自检 → 通过后按 ①→②→③→④ 执行
 3. 使用 `python scripts/check_tags.py wizard <角色名>` 引导用户创建角色
 4. 提交前自动触发 pre-commit 六道硬检查 + commit-msg 治理文档保护
+5. **所有写作在 `writing` 分支上进行**——`main` 仅存模板，永不推送写作内容（见 [AGENTS.md §分支策略](AGENTS.md)）
 
 ## 项目结构
 
@@ -56,6 +57,20 @@
 | **pre-commit 阻断** | AGENTS.md 同步 / 伏笔表格式 / 关系 JSON 完整性 / 标签四类完整性 / 章节时空一致性 + 就绪自检 |
 | **pre-commit 提醒** | 人物卡更新提醒（上下文包中的在场角色卡是否同期修改） |
 | **commit-msg 阻断** | 治理文档修改必须含 `[governance]` 标记 |
+
+## 分支说明
+
+| 分支 | 内容 | 推送 |
+|------|------|------|
+| `main` | 模板——治理机制、脚本、空模板文件 | → GitHub |
+| `writing` | 写作——角色、正文、记忆、关系数据 | **本地不推送** |
+
+```bash
+git clone <repo>              # 拿到干净模板
+git checkout -b writing       # 开写作分支（内容隔离，不会推到 GitHub）
+git checkout main             # 回到模板状态
+git checkout -b novel-two     # 从模板开一本新书
+```
 
 ## 技术说明
 
