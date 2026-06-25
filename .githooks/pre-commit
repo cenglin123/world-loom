@@ -1,7 +1,50 @@
 #!/usr/bin/env bash
 set -e
 # novel_world_one — pre-commit hook
-# 任务: (1) AGENTS.md 同步 (2) 伏笔表格式
+# 任务: (0) main 分支内容阻断 (1) AGENTS.md 同步 (2) 伏笔表格式 …
+
+# —— 0. main 分支内容阻断 ——
+BRANCH=$(git branch --show-current)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+    # 扫描是否有写作内容（人物/章节/设定填写）
+    HAS_CONTENT=""
+    # 有实际角色文件（非模板/索引）
+    for f in 02_人物/*.md; do
+        [ -f "$f" ] || continue
+        name=$(basename "$f" .md)
+        case "$name" in _索引|人物模板|README) continue ;; esac
+        HAS_CONTENT="$HAS_CONTENT  $f"
+    done
+    # 有正文章节
+    if ls 03_正文/第*卷/*.md 2>/dev/null | grep -qvE '(README|_准备_|_审查)'; then
+        HAS_CONTENT="$HAS_CONTENT  03_正文/章节"
+    fi
+    # 世界观已填写（用就绪自检脚本的判据）
+    if python scripts/check_chapters.py --readiness 2>/dev/null | grep -q "H1-BLOCK"; then
+        true  # 就绪自检失败 = 无内容 = 安全
+    else
+        # 就绪自检通过（或角色之外项通过）= 有实质内容
+        HAS_CONTENT="$HAS_CONTENT  [就绪自检通过]"
+    fi
+
+    if [ -n "$HAS_CONTENT" ]; then
+        echo ""
+        echo "============================================"
+        echo "[BLOCK] 当前在模板分支（$BRANCH），但检测到写作内容："
+        echo "$HAS_CONTENT"
+        echo ""
+        echo "模板分支只允许存放治理机制、脚本和空模板。"
+        echo "写作内容必须放在 writing 分支（或其他非 main 分支）："
+        echo ""
+        echo "  git checkout -b writing    # 创建并切换到写作分支"
+        echo "  git checkout writing       # 切换到已有的写作分支"
+        echo ""
+        echo "切到写作分支后重新提交即可。"
+        echo "============================================"
+        exit 1
+    fi
+    echo "[pre-commit] main-branch guard ok"
+fi
 
 # —— 1. AGENTS.md / CLAUDE.md / GEMINI.md 同步 ——
 python scripts/agent_links.py check || {
