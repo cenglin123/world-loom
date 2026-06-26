@@ -12,7 +12,7 @@
 ### 1. `scripts/recall.py` — 上下文召回 CLI（Phase 1 实现）
 
 ```bash
-python scripts/recall.py 沈照影 顾寒枝    # 返回在场角色的注入集
+python scripts/recall.py <角色名1> <角色名2>  # 返回在场角色的注入集
                                           # Phase 1: 每人最近 3-5 条 L2 + 所有未解决问题 + 手动 pin
                                           # 输出格式: YAML，可直接嵌入写前上下文包
 ```
@@ -76,7 +76,7 @@ python scripts/recall.py 沈照影 顾寒枝    # 返回在场角色的注入集
 
 ## 验收标准
 
-1. `python scripts/recall.py 沈照影` 在没有角色文件时优雅报错，在有空 L2 时返回"（无 L2 数据）"
+1. `python scripts/recall.py <角色名>` 在没有角色文件时优雅报错，在有空 L2 时返回"（无 L2 数据）"
 2. `python scripts/recall.py --count` 输出全仓库 L2 条目总数
 3. `02_人物/人物模板.md` 的 L2 段有 `[pinned]` 标记说明，且"不可脚本解析"声明改为"半结构化散文"
 4. AGENTS.md §② 写前准备的步骤列出明确的 recall.py → relationship.py 调用顺序
