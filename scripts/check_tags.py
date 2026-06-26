@@ -348,6 +348,11 @@ def cmd_wizard(char_name: str):
             "prompt": "该角色在世界结构中的位置？上层(掌权者/贵族)、下层(平民/贫民)、边缘(底层/下水道视角)、还是中心(决策圈/信息枢纽)？",
             "example": "边缘"
         },
+        "style_register": {
+            "value": fm.get("style_register", ""),
+            "prompt": "该角色的文风注册？对照 docs/style-locked.md 文风注册表选择（如：武侠/西域/宫廷/市井）。决定了角色的对话称谓、器物词汇、修辞来源、禁用词汇。",
+            "example": "武侠"
+        },
         "前史": {
             "value": "✓" if _section_has_content(body_after_fm, "前史") else "",
             "prompt": "塑造该角色内核四维的关键经历是什么？≤150 字，只写长出欲望/恐惧/底线的那几件事，不是流水账生平。",

@@ -87,7 +87,7 @@
 
 ### 硬约束（分两级）
 
-**已脚本化 — 有机执行**（绕过会被 pre-commit 拒绝）：
+**已脚本化 — 有机执行**（绕过会被 git hooks 拒绝）：
 
 - **AGENTS.md 同步**：`CLAUDE.md` / `GEMINI.md` 必须与 `AGENTS.md` 内容一致。编辑后跑 `python scripts/agent_links.py repair`，pre-commit hook 强制检查。
 - **治理文档修改保护**：`.githooks/commit-msg` 的 `GOVERNANCE_FILES` 数组是**治理文件清单的唯一权威来源**。提交触达其中任一文件且 commit message 不含 `[governance]` 标记 → 提交被**拒绝**。本文不再重复枚举（避免多源漂移）——完整清单见 `.githooks/commit-msg`。

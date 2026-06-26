@@ -45,6 +45,7 @@ hard_blocks:
   - id: H1
     description: "<具体描述>"
     location: "<章节/段落>"
+    attribution: <world_defect | outline_defect | character_drift | writer_error>
     violated_rule: "<引用的世界观条款/人设维度/记忆条目>"
     fix_direction: "<修复建议>"
 soft_blocks:
