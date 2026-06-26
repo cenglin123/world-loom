@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """上下文召回 CLI —— 为写前上下文包组装注入集。
 
-Phase 1（当前）：纯近因召回。每人最近 5 条 L2 + 所有 pinned + 所有未解决问题。
+Phase 1（当前）：纯近因召回。每人最近 5 条 L2 + 所有 pinned + 所有未解决问题。输出 Markdown 注入集，供 agent 转写为自然语言后注入上下文包。
 Phase 2（预留）：--mode embedding 做语义相关性排序。
 
 用法:
@@ -15,6 +15,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CHAR_DIR = ROOT / "02_人物"
+
+
+def _read_text(path: Path) -> str | None:
+    """读取文件内容，UTF-8 解码失败时返回 None。"""
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        print(f"[WARN] 文件非 UTF-8 编码: {path.relative_to(ROOT)}", file=sys.stderr)
+        return None
+
+
+def _is_placeholder(val: str) -> bool:
+    """模板占位符检测——'（待填写…）' 或 '（待选择…）'。普通中文括号内容不过滤。"""
+    return bool(re.match(r"^[（(]待[填写选择]", val.strip()))
 
 
 def _list_characters() -> list[str]:
@@ -44,9 +58,12 @@ def _parse_l2_entries(text: str) -> list[dict]:
     blocks = re.split(r"\n#### ", section)
     for block in blocks[1:]:  # 第一个 block 是 L1 元记忆 + 说明文字
         entry = {}
-        # 场景名在 #### 后面，到换行为止
+        # 场景名在 #### 后面——剥离 [pinned] 标签和 HTML 注释
         scene_end = block.find("\n")
-        entry["场景"] = block[:scene_end].strip() if scene_end != -1 else block.strip()
+        raw_scene = block[:scene_end].strip() if scene_end != -1 else block.strip()
+        raw_scene = re.sub(r"\[pinned\]", "", raw_scene)
+        raw_scene = re.sub(r"<!--.*?-->", "", raw_scene)
+        entry["场景"] = raw_scene.strip()
 
         # 提取字段
         fields = {
@@ -60,7 +77,7 @@ def _parse_l2_entries(text: str) -> list[dict]:
             m = re.search(rf"\*\*{label}\*\*[：:]\s*(.+?)(?=\n\*\*|\n\n|\Z)", block, re.DOTALL)
             if m:
                 val = m.group(1).strip()
-                if val and "（" not in val:  # 排除模板占位符
+                if val and not _is_placeholder(val):  # 排除模板占位符
                     entry[key] = val
 
         if entry.get("场景") and len(entry) > 1:
@@ -81,15 +98,20 @@ def cmd_recall(char_names: list[str]):
             print(f"[WARN] 角色文件不存在: 02_人物/{name}.md", file=sys.stderr)
             continue
 
-        text = char_file.read_text(encoding="utf-8")
+        text = _read_text(char_file)
+        if text is None:
+            continue
 
-        # L1 元记忆
+        # L1 元记忆（限定在「二、记忆」段内扫描）
+        mem_start = text.find("## 二、记忆")
+        rel_start = text.find("## 三、关系", mem_start) if mem_start != -1 else -1
+        mem_text = text[mem_start:rel_start] if rel_start != -1 else text[mem_start:] if mem_start != -1 else ""
         l1 = {}
         for field in ["核心信念", "重要承诺", "自我认知"]:
-            m = re.search(rf"\*\*{field}\*\*[：:]\s*(.+?)(?=\n\*\*|\n\n|\Z)", text, re.DOTALL)
+            m = re.search(rf"\*\*{field}\*\*[：:]\s*(.+?)(?=\n\*\*|\n\n|\Z)", mem_text, re.DOTALL)
             if m:
                 val = m.group(1).strip()
-                if val and "（" not in val:
+                if val and not _is_placeholder(val):
                     l1[field] = val
         if l1:
             output["l1"][name] = l1
@@ -156,7 +178,9 @@ def cmd_count():
 
     total = 0
     for name in chars:
-        text = (CHAR_DIR / f"{name}.md").read_text(encoding="utf-8")
+        text = _read_text(CHAR_DIR / f"{name}.md")
+        if text is None:
+            continue
         entries = _parse_l2_entries(text)
         total += len(entries)
         print(f"  {name}: {len(entries)} 条 L2")
