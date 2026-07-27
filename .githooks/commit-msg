@@ -5,15 +5,24 @@
 COMMIT_MSG_FILE="$1"
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
+# 本清单是治理文件的唯一权威来源——新增治理文件只改这一处。
+# 内容层文件与其 _模板/ 下的骨架成对保护（改哪一份都要标记）。
 GOVERNANCE_FILES=(
     "AGENTS.md"
-    "00_世界观/核心设定.md"
     ".githooks/pre-commit"
     ".githooks/commit-msg"
+    ".githooks/pre-push"
+    "scripts/layers.py"
+    "scripts/publish.py"
+    "00_世界观/核心设定.md"
     "docs/audit-checklist.md"
     "docs/style-locked.md"
+    "docs/writing-style.md"
     "05_复盘/reviewer-protocol.md"
     "05_复盘/reviewer-prompt-template.md"
+    "_模板/00_世界观/核心设定.md"
+    "_模板/docs/style-locked.md"
+    "_模板/README.md"
 )
 
 STAGED=$(git -c core.quotepath=false diff --cached --name-only)

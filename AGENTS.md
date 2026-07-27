@@ -11,21 +11,23 @@
 
 不可改动的硬设定在 `00_世界观/核心设定.md`，任何人（含 agent 和用户）要改都必须走多轮独立评审。
 
-## 分支策略
+## 源码层 / 内容层
 
-| 分支 | 用途 | 推送 |
-|------|------|------|
-| **`main`** | 模板分发——零正文内容，仅含治理机制、脚本、模板文件 | → GitHub（公开分发） |
-| **`writing`** | 实际写作——角色卡、正文、记忆、关系数据、伏笔等所有内容 | **禁止推送**（本地写入 `branch --unset-upstream`） |
+**单分支运行。两层同库同分支、都入库、都有完整 git 历史**——区别只在**能不能对外分发**：
 
-- **`main` 永不沾染写作内容**——所有正文、角色、设定填写只在 `writing` 分支上进行
-- 需要更新模板机制时 → 切回 `main` → 修改 → 推送 → 切回 `writing` 继续写
-- `git clone` 拿到的是 `main` 的干净模板；写作内容仅存本地
-- 开新书 = 从 `main` 切出新的写作分支（`git checkout main && git checkout -b novel-two`）
+| 层 | 是什么 | 分发 |
+|----|--------|------|
+| **源码层** | `_模板/`（可填写文件的空白骨架）+ 治理机制（`.githooks/`、AGENTS.md）+ `scripts/` + 方法文档（`docs/`、`00_世界观/_设计方法.md`）+ `example_world/` | ✓ 可推送到公开仓 |
+| **内容层** | 世界观填写、大纲、角色卡、记忆、关系、正文、伏笔、复盘、`docs/{overview,CURRENT,style-locked}` | ✗ 只留本地，永不推送 |
+
+- **划分清单的唯一权威来源是 `scripts/layers.py`**（`CONTENT_PATTERNS`）——新增目录只改那一处，本文不枚举
+- **推送闸门（硬约束）**：`.githooks/pre-push` **默认拒绝一切推送**。对外分发只能走 `python scripts/publish.py`——它以 HEAD 为基础剥掉全部内容层、复核树内零泄漏、打印将公开的完整文件清单，`--force` 才真推
+  - 想把整个仓库（含正文）推到自己的**私有**远端 → 这是有意为之的例外，`git push --no-verify`
+- 提交无需区分两层：内容和源码都进 git，pre-commit 对两层一视同仁，写坏了可以 `git checkout` 回退
+- 新克隆 / 内容文件缺失 → `python scripts/template.py init`（只生成缺失的，不覆盖已有）
+- 开新书 → `python scripts/template.py reset --all --force`（会覆盖当前内容，但 git 里还留着）
 
 ## 就绪自检（接到"推进剧情"任务前强制执行）
-
-**分支检测**：`git branch --show-current` → 若当前在 `main` 或 `master` → **提醒用户**"当前在模板分支，写作请先 `git checkout -b writing`（或 `git checkout writing`）"。此检查不阻断——用户坚持在主分支上写是用户的选择——但每次推进剧情都会提醒。
 
 以下四项任一不满足 → **拒绝推进正文，提示用户先完成设定**：
 
@@ -34,8 +36,9 @@
 3. `02_人物/_索引.md` 角色清单**至少有一个实际角色**（不含示例/模板行）
 4. `docs/style-locked.md` 的视角和时态段**已选定**（非"待选择"）
 
-> 此哨兵是硬约束——宪法审查、写前准备、复盘 converge 全部依赖这三项有实质内容。设定未就绪时推进正文产生的漂移无法被任何机制兜住。
-> 三项失败时 → 引导用户按 CURRENT.md '下一步'清单逐项填写；世界法则格式见 00_世界观/核心设定.md、人物卡格式见 02_人物/人物模板.md。
+> 此哨兵是硬约束——宪法审查、写前准备、复盘 converge 全部依赖这四项有实质内容。设定未就绪时推进正文产生的漂移无法被任何机制兜住。
+> 失败时 → 引导用户按 CURRENT.md '下一步'清单逐项填写；世界法则格式见 00_世界观/核心设定.md、人物卡格式见 02_人物/人物模板.md。
+> 若这些文件**不存在**（新克隆的仓库只有 `_模板/`）→ 先跑 `python scripts/template.py init` 生成骨架。
 
 ## 同步声明
 
@@ -50,21 +53,22 @@
 |---------|--------|
 | 项目总览 + 世界观梗概 + 关键设计决策 | [docs/overview.md](docs/overview.md) |
 | 叙述约定·锁定层（视角/时态/文风注册表，治理保护） | [docs/style-locked.md](docs/style-locked.md) |
-| 叙述约定·工艺层（文风倾向/端木技法/以筠法则，轻量） | [docs/writing-style.md](docs/writing-style.md) |
+| 叙述约定·工艺层（文风倾向/可读性技法/故事驱动法则，轻量） | [docs/writing-style.md](docs/writing-style.md) |
 | AI 写作已知陷阱（本项目专属） | [docs/pitfalls.md](docs/pitfalls.md) |
 | 一致性审计清单 | [docs/audit-checklist.md](docs/audit-checklist.md) |
 | 复杂任务计划 | [docs/plans/](docs/plans/active/) |
 | 当前任务状态 | [docs/CURRENT.md](docs/CURRENT.md) |
 | 变更记录 | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
+| 模板层与内容层的边界、重置命令 | [_模板/README.md](_模板/README.md) + `scripts/layers.py`（划分权威源） |
 | 世界观（物理层 locked + 社会层/张力层可扩展） | [00_世界观/核心设定.md](00_世界观/核心设定.md) |
 | 世界观·外围（可扩展） | [00_世界观/外围设定.md](00_世界观/外围设定.md) |
-| 世界观构建方法（以筠 #1/#2/#3/#5 可执行凝练；#6 见 writing-style） | [00_世界观/_设计方法.md](00_世界观/_设计方法.md) |
+| 世界观构建方法（地形/力量代价/选址/底层视角/反差身份，可执行；故事驱动法则见 writing-style） | [00_世界观/_设计方法.md](00_世界观/_设计方法.md) |
 | 故事大纲（主线 + 分卷） | [01_大纲/主线.md](01_大纲/主线.md) |
 | 人物（人设 / 记忆 / 关系三层框架 + 标签索引） | [02_人物/_索引.md](02_人物/_索引.md) + 关系数据源 [02_人物/relationships.json](02_人物/relationships.json) + 标签校验 `scripts/check_tags.py` |
 | 伏笔登记（open/closed 状态机） | [04_伏笔/伏笔登记表.md](04_伏笔/伏笔登记表.md) |
 | 正文章节 | [03_正文/README.md](03_正文/README.md) |
 | 阶段性复盘 + converge 协议 + reviewer 模板 | [05_复盘/README.md](05_复盘/README.md) → [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md) → [05_复盘/reviewer-prompt-template.md](05_复盘/reviewer-prompt-template.md) |
-| 本方法论依据 | 四阶段工作流（见下方"四阶段工作流"节），融合 converge 迭代收敛质量控制 + 端木灵星传统写作技法 + 业界 AI 长篇写作实践 |
+| 本方法论依据 | 四阶段工作流（见下方"四阶段工作流"节），融合 converge 迭代收敛质量控制 + 连载长篇可读性技法 + 业界 AI 长篇写作实践 |
 
 ## 人物创建流程
 
@@ -88,25 +92,28 @@
 
 ### 硬约束（分两级）
 
-**已脚本化 — 有机执行**（绕过会被 git hooks 拒绝）：
+**已脚本化 — 硬执行**（绕过会被 git hooks 拒绝）：
 
-- **AGENTS.md 同步**：`CLAUDE.md` / `GEMINI.md` 必须与 `AGENTS.md` 内容一致。编辑后跑 `python scripts/agent_links.py repair`，pre-commit hook 强制检查。
-- **治理文档修改保护**：`.githooks/commit-msg` 的 `GOVERNANCE_FILES` 数组是**治理文件清单的唯一权威来源**。提交触达其中任一文件且 commit message 不含 `[governance]` 标记 → 提交被**拒绝**。本文不再重复枚举（避免多源漂移）——完整清单见 `.githooks/commit-msg`。
-- **伏笔表格式完整**：pre-commit 检查 `04_伏笔/伏笔登记表.md` 的 markdown 表格结构完整性（列数一致、状态字段合法值）。
-- **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性（JSON 中的角色都有对应文件、字段无缺失）。pre-commit 强制检查。
-- **人物卡更新提醒**：提交正文/上下文包时，pre-commit 扫描在场角色，若其人物卡未被同期修改 → 打印提醒（不阻断，确认无误后可直接提交）。
-- **章节校验（就绪自检 + 时空一致性 + 作者白名单）**：`python scripts/check_chapters.py --staged` — 提交正文时强制：(a) 世界观/大纲/人物非空；(b) characters_present 引用的角色都存在；(c) status=dead 的角色不出场；(d) 同一 in_world_date 下角色不出现于两个地点（跨已提交章节）；(e) 章节须有 `model` 字段，否则须显式 `author: human`（封"沉默漏标"，杜绝"漏标 model 反而免检"）。
-- **工作流痕迹（commit-time 留痕兜底）**：pre-commit 对 agent 章节强制配套 `_准备_第M章.md`（缺失**阻断**）；`_审查_`（可卷级，frontmatter `review_ref:` 指向）与 `_审查后_第M章.md` 缺失仅**提醒**。声明 `author: human` 的用户手写章节整体豁免。**此为 commit 时刻留痕，对 `--no-verify` 无效、不覆盖会话期——过程合规的实质质量由 §④ 复盘 converge 兜底，不由钩子保证。**
-- **标签完整性**：`python scripts/check_tags.py check` — 每个角色文件必须含四类标签（所属/能力/等级/擅用），pre-commit 强制检查。卷末跑 `regenerate` 重建 `_索引.md` 标签汇总视图。
+- **AGENTS.md 同步**：`CLAUDE.md` / `GEMINI.md` 必须与 `AGENTS.md` 内容一致。编辑后跑 `python scripts/agent_links.py repair`，pre-commit 强制检查。
+- **治理文档修改保护**：`.githooks/commit-msg` 的 `GOVERNANCE_FILES` 数组是**治理文件清单的唯一权威来源**。提交触达其中任一文件且 commit message 不含 `[governance]` 标记 → 提交被**拒绝**。完整清单见 `.githooks/commit-msg`，本文不枚举（避免多源漂移）。
+- **内容不外泄**：`.githooks/pre-push` 默认拒绝一切推送；分发走 `python scripts/publish.py`，剥离内容层 + 树内零泄漏复核 + 清单确认后才推。划分清单唯一权威源 `scripts/layers.py`。
+- **模板层完整性**：改动 `_模板/` 或 `scripts/layers.py` 时，pre-commit 跑 `python scripts/template.py check` 确认模板与可填写文件配套——否则新克隆 `init` 不出完整骨架。
+- **伏笔表格式完整**：pre-commit 检查 `04_伏笔/伏笔登记表.md` 的表格结构完整性（列数一致、状态字段合法值）。
+- **关系数据完整**：`python scripts/relationship.py check` 校验 `02_人物/relationships.json` 与角色文件一致性。pre-commit 强制。
+- **标签完整性**：`python scripts/check_tags.py check` — 每个角色文件必须含四类标签（所属/能力/等级/擅用）。pre-commit 强制。
+- **人物卡更新提醒**：提交上下文包时 pre-commit 扫描在场角色，其人物卡未同期修改 → 打印提醒（不阻断）。
+- **章节校验（就绪自检 + 时空一致性 + 作者白名单）**：`python scripts/check_chapters.py --staged` — (a) 世界观/大纲/人物非空；(b) characters_present 引用的角色都存在；(c) status=dead 的角色不出场；(d) 同一 in_world_date 下角色不出现于两个地点；(e) 章节须有 `model` 字段，否则须显式 `author: human`（封"沉默漏标"）。
+- **工作流痕迹（commit-time 留痕兜底）**：pre-commit 对 agent 章节强制配套 `_准备_第M章.md`（缺失**阻断**）；`_审查_`（可卷级，frontmatter `review_ref:` 指向）与 `_审查后_第M章.md` 缺失仅**提醒**。声明 `author: human` 的用户手写章节整体豁免。**此为 commit 时刻留痕，对 `--no-verify` 无效、不覆盖会话期——过程合规的实质由 §④ 复盘 converge 兜底。**
 
 **流程强制 — 完工清单兜底**（无脚本强制，但必须在完工检查清单逐项确认）：
 
-- **世界观硬核心 locked**：`00_世界观/核心设定.md` frontmatter `locked: true` 仅保护物理层。物理层修改必须走多轮独立评审；社会层和张力层走轻量迭代。pre-commit 会检测该文件的修改并要求 `[governance]` 标记。
-- **人设内核不可轻改**：核心欲望/核心恐惧/底线/应激模式是行为边界。修改需标注触发事件 + 走 reviewer 验证 + 完工清单确认。
+- **完工必跑 `python scripts/check_all.py`**：一次跑完全部机械检查器（同步/模板层/死链/伏笔/关系/标签/章节时空 + 就绪自检）。hook 只在提交那一刻扫暂存区，这条覆盖全仓当前状态。
 - **伏笔必须登记**：新伏笔 → `04_伏笔/伏笔登记表.md` 登记（状态=open），回收后 → closed。不登记 = 不存在 = 收不回来。完工清单逐章确认。
+- **世界观硬核心 locked**：`00_世界观/核心设定.md` frontmatter `locked: true` 仅保护物理层。物理层修改必须走多轮独立评审；社会层和张力层走轻量迭代。该文件与其模板骨架 `_模板/00_世界观/核心设定.md` 均在治理清单内，修改须带 `[governance]`。
+- **人设内核不可轻改**：核心欲望/核心恐惧/底线/应激模式是行为边界。修改需标注触发事件 + 走 reviewer 验证 + 完工清单确认。
 - **人物记忆必须回写**：每卷/关键场景后，受影响角色的 `02_人物/<角色名>.md` 记忆段必须更新。完工清单逐卷确认（漏回写的记忆漂移在复盘 converge 中由 reviewer 检查）。
-- **关系数据必须同步**：角色之间有意义的互动发生后，用 `python scripts/relationship.py set/update` 写入 `02_人物/relationships.json`。卷末跑 `regenerate` 重建 _索引.md 矩阵视图。pre-commit 强制校验数据完整性。
-- **标签数据必须同步**：角色创建或能力变化后，更新其 frontmatter tags（所属/能力/等级/擅用四类）。卷末跑 `python scripts/check_tags.py regenerate` 重建标签汇总。pre-commit 强制校验四类完整性。
+- **关系数据必须同步**：角色之间有意义的互动发生后，用 `python scripts/relationship.py set/update` 写入 `02_人物/relationships.json`。卷末跑 `regenerate` 重建 _索引.md 矩阵视图。
+- **标签数据必须同步**：角色创建或能力变化后，更新其 frontmatter tags（所属/能力/等级/擅用四类）。卷末跑 `python scripts/check_tags.py regenerate` 重建标签汇总。
 - **完工必检**：任务完成后必须执行末尾"完工检查清单"，不可跳过。
 
 ### 默认偏好
@@ -157,7 +164,7 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 
 正文产出后：**写后 reviewer 审查**（spawn 新 agent 实例，只注入上下文包+产出正文，不含写作 agent 的推理过程）：
 
-- **检查维度**：以 `docs/audit-checklist.md`「小说专项审计」为 rubric（人设一致性 / L2 记忆引用正确 / 关系更新合规 / 世界观无违反 / 前文无矛盾），加 `docs/writing-style.md` 端木技法作为"好看"维度
+- **检查维度**：以 `docs/audit-checklist.md`「小说专项审计」为 rubric（人设一致性 / L2 记忆引用正确 / 关系更新合规 / 世界观无违反 / 前文无矛盾），加 `docs/writing-style.md` 可读性技法作为"好看"维度
 - **通过阈值**：0 阻断项，flag 项 ≤ 2
 - **不通过** → 输出阻断清单（具体到人设第 X 条 / 记忆第 Y 条 / 世界观第 Z 条）→ 原写作 agent 修复 → reviewer 二审 → 最多 3 轮否则升级用户裁决
 - **通过** → 进入下一场或复盘
@@ -168,13 +175,9 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 
 复盘分两层：先跑机械脚本，再跑人工 converge。
 
-**机械层**（脚本自动执行）：
-- `python scripts/audit.py dead-links` — 断链检查（不跑 drift/memory 等代码项目检查项）
-- AGENTS.md 同步状态：`python scripts/agent_links.py check`
-- `python scripts/check_foreshadowing.py` — 伏笔 open/closed 状态 + 超期检测
-- `python scripts/relationship.py check` — 关系数据与角色文件一致性
-- `python scripts/check_chapters.py` — 章节时空一致性（死角色复活/同时两地/就绪自检）
-- `python scripts/check_tags.py check` — 标签四类完整性 + 所属标签与 faction 字段一致
+**机械层**：`python scripts/check_all.py` 一次跑完下列全部检查器（清单以脚本内 `CHECKS` 为准，本文不重复枚举）：
+AGENTS 三文件同步 / 模板层完整性 / 文档死链 / 伏笔 open-closed 状态 + 超期 / 关系数据与角色文件一致 / 标签四类完整 + faction 一致 / 章节时空一致（死角色复活、同时两地）+ 就绪自检。
+单项排障时再单独跑对应脚本（如 `python scripts/check_chapters.py`）。
 
 **语义层（复盘 converge）**——详见 `05_复盘/reviewer-protocol.md` 的本地协议。核心流程：
 1. **Spawn 独立 reviewer**（新 agent 实例），注入全卷正文 + 世界观 + 大纲 + 人物卡 + 伏笔表
@@ -189,8 +192,8 @@ agent 接到"推进剧情"类任务时，先跑**就绪自检**（见上方）�
 ## 写作风格约定
 
 详见 [docs/style-locked.md](docs/style-locked.md)（视角/时态/文风注册表，治理锁定）+ [docs/writing-style.md](docs/writing-style.md)（文风倾向/技法，轻量）。简述：
-- 视角、时态、文风注册表在 style-locked.md 定义；文风倾向与端木技法在 writing-style.md
-- 端木灵星技法（矛盾冲突五路径、开篇三章强化主角、章末钩子、伏笔快速回收）作为 reviewer rubric 的"好看"可操作抓手
+- 视角、时态、文风注册表在 style-locked.md 定义；文风倾向与可读性技法在 writing-style.md
+- 可读性技法（矛盾冲突五路径、开篇三章强化主角、章末钩子、伏笔快速回收）作为 reviewer rubric 的"好看"可操作抓手
 
 ## 文件格式约定
 
@@ -260,7 +263,9 @@ rounds: 1
 
 **治理文档标记**：修改 `.githooks/commit-msg` 的 `GOVERNANCE_FILES` 清单内任一文件时，commit message 必须含 `[governance]` 标记，否则提交被拒绝。清单为唯一权威来源（见 `.githooks/commit-msg`），新增治理文件只改那一处。
 
-**及时提交**：完成一卷或关键场景后主动提交，避免 diff 膨胀。
+**及时提交**：完成一卷或关键场景后主动提交，避免 diff 膨胀。内容与源码同库同分支，正常 `git commit` 即可——两层都要有历史。
+
+**推送另说**：`git push` 被 pre-push 闸门默认拒绝。对外分发模板走 `python scripts/publish.py`（先不带参数看清单，再 `--force`）；要推整仓到私有远端才用 `git push --no-verify`，且必须是用户明确要求。
 
 ## 文档维护原则
 
@@ -268,16 +273,18 @@ rounds: 1
 2. **只记正文里读不出来的东西**：世界观、大纲、人物内核、设计决策。正文本身的内容不往文档抄。
 3. **CHANGELOG 不读全文**：用 `python scripts/changelog.py titles/show/add/recent`。
 4. **计划落盘**：涉及跨卷、多角色、需要评审的任务在 `docs/plans/active/` 写计划，完成后移 `docs/plans/completed/`。
+   ⚠️ `docs/plans/` 与 `docs/CHANGELOG.md` 属**源码层、会被分发**——写机制类计划放这里；**含剧透的剧情计划改放内容层**（`03_正文/第N卷/_准备_*.md` 或 `05_复盘/`），别写进 plans/。
 5. **定期审计**：每 ~20 次任务或每月，跑 `python scripts/audit.py check`。
 
 ## 完工检查清单
 
 任务完成后逐项走完：
 
+- [ ] **机械校验**：`python scripts/check_all.py` 全绿（hook 只在提交那一刻扫暂存区，这一步覆盖全仓当前状态）。
 - [ ] **正文一致性**：本场/本卷是否有漂移——人设违反、记忆矛盾、关系混乱、世界观冲突？走写后审或复盘 converge。
 - [ ] **人物记忆回写**：受影响角色的 `02_人物/<角色名>.md` 记忆段是否已更新？L2 新条目是否正确？
-- [ ] **关系数据同步**：`python scripts/relationship.py check` 是否通过？有互动的角色对是否已用 `set`/`update` 写入 `02_人物/relationships.json`？完成后跑 `regenerate`。
-- [ ] **标签数据同步**：`python scripts/check_tags.py check` 是否通过？角色能力变化后 tags 是否已更新？新增/移除角色后跑 `python scripts/check_tags.py regenerate` 重建标签汇总、`python scripts/check_tags.py _index` 重建角色清单表。
+- [ ] **关系数据同步**：有互动的角色对是否已用 `relationship.py set`/`update` 写入 `02_人物/relationships.json`？完成后跑 `regenerate`。
+- [ ] **标签数据同步**：角色能力变化后 tags 是否已更新？新增/移除角色后跑 `python scripts/check_tags.py regenerate` 重建标签汇总、`python scripts/check_tags.py _index` 重建角色清单表。
 - [ ] **伏笔登记**：埋了新伏笔？`04_伏笔/伏笔登记表.md` 已录入。收了旧伏笔？状态已改 closed。
 - [ ] **CHANGELOG**：是否值得记录？用 `python scripts/changelog.py add ...` 追加。
 - [ ] **同步一致性**：本文件若被编辑，跑 `python scripts/agent_links.py repair`。

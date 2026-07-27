@@ -92,7 +92,7 @@ def main() -> int:
                     print(f"[WARN] {cid}: open 超过 ~{OPEN_STALE_CHAPTERS} 章未收（埋于 {buried}），可能悬空")
                     issues += 1
                 elif last_ch and (last_ch - buried_ch) > USED_STALE_CHAPTERS:
-                    print(f"[INFO] {cid}: 埋了较久未用（{buried}），建议尽快回收或废弃（端木技法：伏笔要快速挖出来用掉）")
+                    print(f"[INFO] {cid}: 埋了较久未用（{buried}），建议尽快回收或废弃（伏笔时效原则：埋下的伏笔要快速挖出来用掉）")
 
         # closed → 必须有实际回收位置
         if status == "closed" and (not actual or actual in ("—", "-", "待填")):

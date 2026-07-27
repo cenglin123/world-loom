@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# novel_world_one — pre-push hook（推送闸门）
+#
+# 源码层（模板/治理/脚本/方法文档）与内容层（正文/角色/世界观填写/伏笔/复盘）
+# 同库同分支、都有 git 历史。区别只在能不能对外分发。
+#
+# ⇒ 默认**拒绝一切推送**。对外分发只能走 scripts/publish.py，它会剥掉内容层再推。
+#   划分清单的唯一权威来源是 scripts/layers.py。
+
+if [ "$NOVEL_PUBLISH" != "1" ]; then
+    echo ""
+    echo "============================================"
+    echo "[BLOCK] 推送被拒绝——本仓库含创作内容，不得直接推送。"
+    echo ""
+    echo "对外分发模板（只推源码层，自动剥离正文/角色/世界观填写）："
+    echo "  python scripts/publish.py            # 先看将公开哪些文件"
+    echo "  python scripts/publish.py --force    # 确认后推送"
+    echo ""
+    echo "若你确实要把整个仓库（含创作内容）推到自己的私有远端，"
+    echo "这是一次有意为之的例外，请显式绕过本闸门："
+    echo "  git push --no-verify <remote> <branch>"
+    echo "============================================"
+    exit 1
+fi
+
+# —— 由 publish.py 发起：复核每个待推 ref 的树里没有内容层文件 ——
+ZERO="0000000000000000000000000000000000000000"
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+    [ -z "$local_sha" ] && continue
+    [ "$local_sha" = "$ZERO" ] && continue   # 删除远端分支，无需复核
+    python scripts/layers.py verify-tree "$local_sha" || {
+        echo ""
+        echo "============================================"
+        echo "[BLOCK] 待推送的提交里含内容层文件——闸门拦下。"
+        echo "这说明 publish.py 的剥离逻辑或 layers.py 的清单有问题，请修好再推。"
+        echo "============================================"
+        exit 1
+    }
+done
+
+exit 0

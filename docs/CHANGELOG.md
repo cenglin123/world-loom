@@ -2,6 +2,28 @@
 
 > 倒序排列，最新在前。操作：python scripts/changelog.py titles/show/add/recent
 
+## 2026-07-27
+
+### 方法论去人名化：功能性文档改用描述性方法名
+
+#### 变更内容
+- 把各处按人名/期数命名的方法论引用改为描述其作用的名称，使 agent 不必先认人再解析方法。00_世界观/_设计方法.md 模块由 "#1/#2/#3/#5/#7" 改为 地形生成法/力量与代价体系/城镇选址评分法/底层视角法/反差身份设计法，删除 author 与知识库原文链接段；docs/writing-style.md "端木技法"→"可读性技法（连载长篇）"、"以筠·故事驱动法则"→"故事驱动法则"；核心设定/外围设定/人物模板/主线/伏笔登记表/style-locked/audit-checklist/example_world/check_foreshadowing.py 的引用同步改名；AGENTS.md 三处导航与 rubric 措辞同步（agent_links repair --force）。出处集中到 README 新增「参考来源」段（原作者与书名仅记于此）。历史记录（CHANGELOG 旧条目、docs/plans/completed/）不改写。
+
+### [governance] 取消 main/writing 分支制度，改为单分支 + 推送闸门
+
+#### 变更内容
+- **动机**：分支隔离对用户难以分辨；但内容若不入库则失去版本历史与 diff 依据，整套复盘体系失效。最终方案取二者之长：**单分支、内容与源码同库全量入库（都有 git 历史）**，"不外泄"由推送闸门保证，而非分支纪律。
+- **划分**：新增 `scripts/layers.py` 作为源码层/内容层划分的**唯一权威源**（`CONTENT_PATTERNS` + `SOURCE_EXCEPTIONS`），提供 `list-content` / `classify` / `verify-tree` 三个 CLI。
+- **闸门**：新增 `.githooks/pre-push`——默认拒绝一切推送；`NOVEL_PUBLISH=1`（仅 publish.py 设置）时逐 ref 复核树内无内容层文件才放行。私有整仓推送的例外出口是 `git push --no-verify`，提示语内已写明。
+- **分发**：新增 `scripts/publish.py`——以 HEAD 建临时索引剥离内容层 → write-tree/commit-tree 落到本地 `template-dist` 分支 → 复核零泄漏 → 打印将公开的完整文件清单 → `--force` 才推。默认 dry-run，工作区脏时拒绝执行。
+- **模板层**：新增 `_模板/` 按原路径存放 9 个可填写文件的空白骨架（核心设定/外围设定/主线/_索引/relationships.json/伏笔登记表/overview/CURRENT/style-locked）+ `scripts/template.py`（check/init/reset，reset 默认 dry-run 需 --force）。
+- **钩子调整**：pre-commit 删除 main 分支内容阻断段、新增模板层完整性检查，其余内容层检查照常生效（内容仍入库）；commit-msg 的 `GOVERNANCE_FILES` 补入 pre-push/layers.py/publish.py/_模板/ 下的治理骨架；check_chapters.py 去掉分支提醒，改为内容缺失时提示 `template.py init`。
+- **新增 `scripts/check_all.py`**：7 个检查器一键跑全仓（hook 只扫暂存区），列为完工清单必检项。
+- **附带**：新增 `.gitattributes`（`* text=auto eol=lf`）；`.claudian/`、`.converge/`、`example_world/*.png` 进 `.gitignore`；`_设计方法.md` 增题材换算表并把西幻专属例子改为西幻/武侠/仙灵/科幻不完全列举；style-locked 文风注册表标注为单一题材示例、需按本书重写；audit-checklist 机械项收敛为指向 check_all.py；主线.md 矛盾五路径改为指针不再重复列举。
+
+
+---
+
 ## 2026-07-07
 
 ### 以筠系列第七期（角色反差身份）接入设计方法手册

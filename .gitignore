@@ -1,7 +1,18 @@
+# 源码层与内容层同库同分支，都入库、都有 git 历史；两层的区别只在能不能对外分发，
+# 由推送闸门（.githooks/pre-push + scripts/publish.py）把关。
+# 划分清单的唯一权威来源是 scripts/layers.py，不在本文件。
+
+# 示例世界的插图（体积大，无文档引用）
+example_world/*.png
+
 # Obsidian internal config (not version-controlled in this project)
 .obsidian/
 .obsidian_img_files/
 .trash/
+
+# Agent 工作区
+.claudian/
+.converge/
 
 # OS
 .DS_Store

@@ -1,51 +1,26 @@
 #!/usr/bin/env bash
 set -e
 # novel_world_one — pre-commit hook
-# 任务: (0) main 分支内容阻断 (1) AGENTS.md 同步 (2) 伏笔表格式 …
+#
+# 源码层（_模板/ + 治理 + 脚本 + 方法文档）与内容层（正文/角色/世界观填写/伏笔/
+# 复盘）同库同分支、都入库，因此下面各项对两层一视同仁。
+# 两层的区别只在能不能对外分发，那由 .githooks/pre-push 把关。
+#
+# 任务: (0) 模板层完整性 (1) AGENTS.md 同步 (2) 伏笔表格式 (3) 关系/标签
+#       (4) 人物卡提醒 (5) 章节校验 (6) 工作流痕迹
 
-# —— 0. main 分支内容阻断 ——
-BRANCH=$(git branch --show-current)
-if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-    # 白名单检测——模板分支上，内容目录只允许白名单文件存在
-    HAS_CONTENT=""
-    # 02_人物/：仅允许 _索引.md / 人物模板.md / relationships.json
-    for f in 02_人物/*; do
-        [ -e "$f" ] || continue
-        name=$(basename "$f")
-        case "$name" in _索引.md|人物模板.md|relationships.json) continue ;; esac
-        HAS_CONTENT="$HAS_CONTENT  $f"
-    done
-    # 03_正文/：仅允许 README.md
-    for f in 03_正文/*; do
-        [ -e "$f" ] || continue
-        name=$(basename "$f")
-        case "$name" in README.md) continue ;; esac
-        HAS_CONTENT="$HAS_CONTENT  $f"
-    done
-    # 00_世界观/核心设定.md：仅允许模板占位（body_has_content 判定）
-    if python scripts/check_chapters.py --readiness 2>/dev/null | grep -q "H1-BLOCK"; then
-        true  # 就绪自检失败 = 无内容 = 安全
-    else
-        HAS_CONTENT="$HAS_CONTENT  [就绪自检通过——核心设定/大纲/角色/文风基线已填写]"
-    fi
-
-    if [ -n "$HAS_CONTENT" ]; then
+# —— 0. 模板层完整性 ——
+# _模板/ 是源码；每个可填写文件都必须有模板骨架，否则新克隆 init 不出完整结构。
+if git -c core.quotepath=false diff --cached --name-only | grep -qE "^(_模板/|scripts/layers\.py)"; then
+    python scripts/template.py check >/dev/null || {
         echo ""
         echo "============================================"
-        echo "[BLOCK] 当前在模板分支（$BRANCH），但检测到写作内容："
-        echo "$HAS_CONTENT"
-        echo ""
-        echo "模板分支只允许存放治理机制、脚本和空模板。"
-        echo "写作内容必须放在 writing 分支（或其他非 main 分支）："
-        echo ""
-        echo "  git checkout -b writing    # 创建并切换到写作分支"
-        echo "  git checkout writing       # 切换到已有的写作分支"
-        echo ""
-        echo "切到写作分支后重新提交即可。"
+        echo "模板层异常，请检查 _模板/ 与 scripts/layers.py 的划分是否配套。"
+        echo "  python scripts/template.py check"
         echo "============================================"
         exit 1
-    fi
-    echo "[pre-commit] main-branch guard ok"
+    }
+    echo "[pre-commit] template layer ok"
 fi
 
 # —— 1. AGENTS.md / CLAUDE.md / GEMINI.md 同步 ——
