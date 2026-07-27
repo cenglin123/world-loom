@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 # novel_world_one — pre-push hook（推送闸门）
 #
 # 源码层（模板/治理/脚本/方法文档）与内容层（正文/角色/世界观填写/伏笔/复盘）

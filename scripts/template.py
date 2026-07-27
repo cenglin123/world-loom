@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 TPL_DIR = ROOT / "_模板"
 
 # 判定「产物是否已被填写」——占位符特征。命中越少说明填得越多。
-PLACEHOLDER_RE = re.compile(r"（待填写|（待填|（待选择|（示例")
+PLACEHOLDER_RE = re.compile(r"[（(]待填写|[（(]待填|[（(]待选择|[（(]示例")
 
 
 def _templates() -> list[Path]:

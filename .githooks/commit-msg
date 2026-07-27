@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 # novel_world_one — commit-msg hook
 # 治理文档修改保护：若提交触达治理文档，commit message 必须含 [governance] 标记
 
