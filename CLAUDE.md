@@ -276,17 +276,14 @@ rounds: 1
    ⚠️ `docs/plans/` 与 `docs/CHANGELOG.md` 属**源码层、会被分发**——写机制类计划放这里；**含剧透的剧情计划改放内容层**（`03_正文/第N卷/_准备_*.md` 或 `05_复盘/`），别写进 plans/。
 5. **定期审计**：每 ~20 次任务或每月，跑 `python scripts/audit.py check`。
 
-## 完工检查清单
+## 完工必检
 
-任务完成后逐项走完：
+**先跑这个——无输出即通过，有 FAIL 才需要看：**
 
-- [ ] **机械校验**：`python scripts/check_all.py` 全绿（hook 只在提交那一刻扫暂存区，这一步覆盖全仓当前状态）。
-- [ ] **正文一致性**：本场/本卷是否有漂移——人设违反、记忆矛盾、关系混乱、世界观冲突？走写后审或复盘 converge。
-- [ ] **人物记忆回写**：受影响角色的 `02_人物/<角色名>.md` 记忆段是否已更新？L2 新条目是否正确？
-- [ ] **关系数据同步**：有互动的角色对是否已用 `relationship.py set`/`update` 写入 `02_人物/relationships.json`？完成后跑 `regenerate`。
-- [ ] **标签数据同步**：角色能力变化后 tags 是否已更新？新增/移除角色后跑 `python scripts/check_tags.py regenerate` 重建标签汇总、`python scripts/check_tags.py _index` 重建角色清单表。
-- [ ] **伏笔登记**：埋了新伏笔？`04_伏笔/伏笔登记表.md` 已录入。收了旧伏笔？状态已改 closed。
-- [ ] **CHANGELOG**：是否值得记录？用 `python scripts/changelog.py add ...` 追加。
-- [ ] **同步一致性**：本文件若被编辑，跑 `python scripts/agent_links.py repair`。
-- [ ] **世界观无违**：硬核心设定未被本节/本卷违反？
-- [ ] **跳过条件**：纯格式修改、注释修改、同一会话内已记录的变更可跳过文档更新（验证不可跳过）。
+```
+python scripts/check_all.py --quiet
+```
+
+每条 FAIL 自带修复指引，照做后重跑即可。覆盖：三文件同步 / 模板层 / 死链 / 伏笔 / 关系 / 标签 / 章节时空 + 就绪自检。
+
+> 语义一致性（人设漂移、记忆矛盾、世界观违反）机械层检不出，走 §④ 复盘 converge 兜底。
