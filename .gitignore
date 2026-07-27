@@ -10,9 +10,8 @@ example_world/*.png
 .obsidian_img_files/
 .trash/
 
-# Agent 工作区
+# Agent 工作区（临时产物，非正式流程记录）
 .claudian/
-.converge/
 
 # OS
 .DS_Store
