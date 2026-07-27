@@ -12,6 +12,7 @@ example_world/*.png
 
 # Agent 工作区（临时产物，非正式流程记录）
 .claudian/
+.converge/
 
 # OS
 .DS_Store
