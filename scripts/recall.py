@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """上下文召回 CLI —— 为写前上下文包组装注入集。
 
-Phase 1（当前）：纯近因召回。每人最近 5 条 L2 + 所有 pinned + 所有未解决问题。输出 Markdown 注入集，供 agent 转写为自然语言后注入上下文包。
+Phase 1（当前）：人物生成内核永久置顶 + 最近 5 条 L2 + 所有 pinned + 所有未解决问题。输出 Markdown 注入集，供 agent 转写为自然语言后注入上下文包。
 Phase 2（预留）：--mode embedding 做语义相关性排序。
 
 用法:
-  python scripts/recall.py <角色名> [<角色名> ...]      # 返回在场角色的注入集 YAML
+  python scripts/recall.py <角色名> [<角色名> ...]      # 返回在场角色的 Markdown 注入集
   python scripts/recall.py --count                        # 统计全仓库 L2 总条数
 """
 
@@ -15,6 +15,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CHAR_DIR = ROOT / "02_人物"
+
+# 写前永久置顶的人物生成字段。字段内容的唯一事实源在人物卡「一、人设」。
+STABLE_CORE_FIELDS = (
+    "错误信念", "自觉欲望", "深层需要",
+    "核心价值排序", "自我认同", "默认策略", "压力退化模式",
+    "认知盲点", "行为边界", "越线条件与代价",
+    "表面身份及其要求", "秘密自我", "暴露代价", "逼迫选择的条件",
+)
 
 
 def _read_text(path: Path) -> str | None:
@@ -29,6 +37,23 @@ def _read_text(path: Path) -> str | None:
 def _is_placeholder(val: str) -> bool:
     """模板占位符检测——'（待填写…）' 或 '（待选择…）'。普通中文括号内容不过滤。"""
     return bool(re.match(r"^[（(]待[填写选择]", val.strip()))
+
+
+def _parse_table_fields(text: str, wanted: tuple[str, ...]) -> dict[str, str]:
+    """从 Markdown 两列表格读取指定字段；占位符不返回。"""
+    found: dict[str, str] = {}
+    wanted_set = set(wanted)
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or stripped.startswith("|---"):
+            continue
+        cells = [cell.strip() for cell in stripped.split("|")[1:-1]]
+        if len(cells) < 2 or cells[0] not in wanted_set:
+            continue
+        value = cells[1]
+        if value and not _is_placeholder(value):
+            found[cells[0]] = value
+    return found
 
 
 def _list_characters() -> list[str]:
@@ -53,10 +78,10 @@ def _parse_l2_entries(text: str) -> list[dict]:
     rel_start = text.find("## 三、关系", mem_start)
     section = text[mem_start:rel_start] if rel_start != -1 else text[mem_start:]
 
-    # 按 #### 切分（跳过 L1 元记忆段——它没有 #### 子标题）
+    # 按 #### 切分；第一个 block 是本节说明文字。
     entries = []
     blocks = re.split(r"\n#### ", section)
-    for block in blocks[1:]:  # 第一个 block 是 L1 元记忆 + 说明文字
+    for block in blocks[1:]:
         entry = {}
         # 场景名在 #### 后面——剥离 [pinned] 标签和 HTML 注释
         scene_end = block.find("\n")
@@ -89,8 +114,8 @@ def _parse_l2_entries(text: str) -> list[dict]:
 
 
 def cmd_recall(char_names: list[str]):
-    """为指定角色生成注入集 YAML。"""
-    output = {"l1": {}, "l2": {}}
+    """为指定角色生成 Markdown 注入集。"""
+    output = {"stable_core": {}, "l2": {}}
 
     for name in char_names:
         char_file = CHAR_DIR / f"{name}.md"
@@ -102,19 +127,9 @@ def cmd_recall(char_names: list[str]):
         if text is None:
             continue
 
-        # L1 元记忆（限定在「二、记忆」段内扫描）
-        mem_start = text.find("## 二、记忆")
-        rel_start = text.find("## 三、关系", mem_start) if mem_start != -1 else -1
-        mem_text = text[mem_start:rel_start] if rel_start != -1 else text[mem_start:] if mem_start != -1 else ""
-        l1 = {}
-        for field in ["核心信念", "重要承诺", "自我认知"]:
-            m = re.search(rf"\*\*{field}\*\*[：:]\s*(.+?)(?=\n\*\*|\n\n|\Z)", mem_text, re.DOTALL)
-            if m:
-                val = m.group(1).strip()
-                if val and not _is_placeholder(val):
-                    l1[field] = val
-        if l1:
-            output["l1"][name] = l1
+        stable_core = _parse_table_fields(text, STABLE_CORE_FIELDS)
+        if stable_core:
+            output["stable_core"][name] = stable_core
 
         # L2 条目
         entries = _parse_l2_entries(text)
@@ -141,14 +156,14 @@ def cmd_recall(char_names: list[str]):
         # 保持原始时间序输出
         output["l2"][name] = selected
 
-    # 输出 YAML（agent 的内部材料，供转写为自然语言后注入上下文包）
-    print("# L2 注入集 · recall.py Phase 1")
-    print("# 过滤策略：每人最近 5 条 + pinned + 未解决问题非空")
+    # 输出 Markdown（agent 的内部材料，供压缩转写为自然语言后注入上下文包）
+    print("# 写前注入集 · recall.py Phase 1")
+    print("# 过滤策略：人物生成内核永久置顶 + 每人最近 5 条 L2 + pinned + 未解决问题非空")
     print()
 
-    if output["l1"]:
-        print("## L1 元记忆（永久置顶）")
-        for name, fields in output["l1"].items():
+    if output["stable_core"]:
+        print("## 人物生成内核（永久置顶）")
+        for name, fields in output["stable_core"].items():
             print(f"\n### {name}")
             for k, v in fields.items():
                 print(f"- **{k}**：{v}")

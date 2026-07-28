@@ -285,36 +285,39 @@ def cmd_wizard(char_name: str):
         print(f"[FAIL] {char_file.relative_to(ROOT)} 缺少 frontmatter")
         sys.exit(1)
 
-    # 读取正文中的内核四维
+    # 读取正文中的人物生成字段
     body_text = char_file.read_text(encoding="utf-8")
     body_after_fm = body_text[body_text.find("---", 3)+3:] if body_text.startswith("---") else body_text
 
-    def _body_has_field(text: str, field: str) -> bool:
-        """检查正文中某字段是否非空（非占位符）。"""
-        pattern = rf"\| {field} \| (.+?) \|"
-        m = re.search(pattern, text)
-        if not m:
-            return False
-        val = m.group(1).strip()
-        return bool(val) and "（" not in val and "待填" not in val
+    def _value_is_filled(val: str) -> bool:
+        val = val.strip()
+        return bool(val) and not val.startswith(("（", "(")) and "待填" not in val
 
-    def _section_has_content(text: str, heading_kw: str) -> bool:
-        """检查某个散文小节（## / ### 标题含 heading_kw）是否有非占位符正文。"""
-        in_section = False
-        for line in text.splitlines():
-            if line.startswith("#") and heading_kw in line:
-                in_section = True
-                continue
-            if in_section:
-                if line.startswith("#"):  # 下一个标题 → 本节结束
-                    break
-                s = line.strip()
-                if not s or s.startswith(">"):  # 空行 / 引导 blockquote 跳过
-                    continue
-                if s.startswith("（") or "待填" in s:  # 占位符跳过
-                    continue
-                return True
-        return False
+    def _body_has_field(text: str, field: str) -> bool:
+        """检查 Markdown 两列表格中的字段是否非空、非占位符。"""
+        pattern = rf"\| {re.escape(field)} \| (.+?) \|"
+        m = re.search(pattern, text)
+        return bool(m and _value_is_filled(m.group(1)))
+
+    def _body_has_bullet(text: str, field: str) -> bool:
+        """检查 `- **字段**：值` 是否非空、非占位符。"""
+        pattern = rf"(?m)^- \*\*{re.escape(field)}\*\*[：:]\s*(.*)$"
+        m = re.search(pattern, text)
+        return bool(m and _value_is_filled(m.group(1)))
+
+    def _table_check(field: str, prompt: str, example: str) -> dict:
+        return {
+            "value": "✓" if _body_has_field(body_after_fm, field) else "",
+            "prompt": prompt,
+            "example": example,
+        }
+
+    def _bullet_check(field: str, prompt: str, example: str) -> dict:
+        return {
+            "value": "✓" if _body_has_bullet(body_after_fm, field) else "",
+            "prompt": prompt,
+            "example": example,
+        }
 
     # 检查清单
     checks = {
@@ -345,39 +348,101 @@ def cmd_wizard(char_name: str):
         },
         "world_position (上层|下层|边缘|中心)": {
             "value": fm.get("world_position", ""),
-            "prompt": "该角色在世界结构中的位置？上层(掌权者/贵族)、下层(平民/贫民)、边缘(底层/下水道视角)、还是中心(决策圈/信息枢纽)？",
+            "prompt": "该角色在世界结构中的位置？上层、下层、边缘还是中心？",
             "example": "边缘"
         },
         "style_register": {
             "value": fm.get("style_register", ""),
-            "prompt": "该角色的文风注册？对照 docs/style-locked.md 文风注册表选择（如：武侠/西域/宫廷/市井）。决定了角色的对话称谓、器物词汇、修辞来源、禁用词汇。",
+            "prompt": "对照 docs/style-locked.md 选择该角色的文风注册。",
             "example": "武侠"
         },
-        "前史": {
-            "value": "✓" if _section_has_content(body_after_fm, "前史") else "",
-            "prompt": "塑造该角色内核四维的关键经历是什么？≤150 字，只写长出欲望/恐惧/底线的那几件事，不是流水账生平。",
-            "example": "七岁那年父亲战场犹豫害死同袍，全家蒙羞、她被迫弃武"
-        },
-        "核心欲望": {
-            "value": "✓" if _body_has_field(body_after_fm, "核心欲望") else "",
-            "prompt": "该角色一生在追求什么？不能是'想变强'这种笼统表述，要是具体的人和事。",
-            "example": "要让当年逼她弃武的人当面认错"
-        },
-        "核心恐惧": {
-            "value": "✓" if _body_has_field(body_after_fm, "核心恐惧") else "",
-            "prompt": "该角色最怕什么发生？不能是'怕失去'，要具体到某个场景或后果。",
-            "example": "怕重蹈父亲在关键时刻犹豫、害死同伴的覆辙"
-        },
-        "底线/禁忌": {
-            "value": "✓" if _body_has_field(body_after_fm, "底线/禁忌") else "",
-            "prompt": "有什么事是该角色绝对不会做的？",
-            "example": "不对孩子出手；不背叛主动信任过自己的人"
-        },
-        "应激模式": {
-            "value": "✓" if _body_has_field(body_after_fm, "应激模式") else "",
-            "prompt": "该角色在压力下如何反应？不是'会暴躁'这类笼统描述，要有可观察的行为模式。",
-            "example": "越危险越冷静，先观察三息再动手"
-        },
+        "塑造性事件": _table_check(
+            "塑造性事件",
+            "哪件具体经历真正改变了该角色？只写事件，不写流水账生平。",
+            "七岁时亲眼看见父亲因犹豫错失救援时机，十一名同袍因此战死"
+        ),
+        "错误信念": _table_check(
+            "错误信念",
+            "该角色从塑造性事件中得出了什么片面结论？",
+            "任何犹豫都会害死人"
+        ),
+        "自觉欲望": _table_check(
+            "自觉欲望",
+            "该角色以为得到什么就能解决问题？必须具体。",
+            "掌握所有威胁的动向，让同伴永远不必承担意外"
+        ),
+        "深层需要": _table_check(
+            "深层需要",
+            "该角色真正需要理解、接受或改变什么？",
+            "理解审慎不等于软弱，控制也不等于安全"
+        ),
+        "核心价值排序": _table_check(
+            "核心价值排序",
+            "目标冲突时如何排序？至少写出三项。",
+            "姐妹安全 > 查清真相 > 门派名誉 > 自己性命"
+        ),
+        "自我认同": _table_check(
+            "自我认同",
+            "该角色认为自己是怎样的人？",
+            "我是必须替所有人提前发现危险的人"
+        ),
+        "默认策略": _table_check(
+            "默认策略",
+            "该角色通常用什么方式解决问题？",
+            "先收集信息，再用规则和责任迫使他人配合"
+        ),
+        "压力退化模式": _table_check(
+            "压力退化模式",
+            "恐惧升高或资源不足时，默认策略如何变形？",
+            "从收集信息退化为封锁信息、替所有人做决定"
+        ),
+        "认知盲点": _table_check(
+            "认知盲点",
+            "哪类事实最容易被该角色忽略或曲解？",
+            "低估他人自主承担风险的意愿"
+        ),
+        "行为边界": _table_check(
+            "行为边界",
+            "正常状态下不愿做什么？",
+            "不以无辜者作诱饵，不隐瞒直接威胁姐妹安全的信息"
+        ),
+        "越线条件与代价": _table_check(
+            "越线条件与代价",
+            "什么冲突会逼他越线；越线后会失去什么？",
+            "若唯一线索依附于无辜者，可能短暂欺骗对方；代价是失去自我认同与同伴信任"
+        ),
+        "表面身份及其要求": _table_check(
+            "表面身份及其要求",
+            "公开身份是什么，它要求该角色必须怎样生活？",
+            "七瑶门外行小队领队；必须显得冷静、公正、永远有答案"
+        ),
+        "秘密自我": _table_check(
+            "秘密自我",
+            "真正想要、害怕或必须隐藏的另一面是什么？",
+            "其实渴望有人替她做一次决定，也害怕自己根本保护不了所有人"
+        ),
+        "暴露代价": _table_check(
+            "暴露代价",
+            "秘密被看见后会失去什么？",
+            "失去领队权威，也可能让姐妹不再相信她的判断"
+        ),
+        "逼迫选择的条件": _table_check(
+            "逼迫选择的条件",
+            "什么事件会让表面身份与秘密自我无法继续共存？",
+            "必须公开承认自己判断错误，才能阻止姐妹执行错误命令"
+        ),
+        "表达层/外表": _bullet_check(
+            "外表", "哪些外观信息能体现身份、处境或行动能力？", "白衣利落，惯把袖口束紧以便随时出手"
+        ),
+        "表达层/语言指纹": _bullet_check(
+            "语言指纹", "句长、称呼和回避表达有什么规律？", "话少，先给结论；对姐妹用昵称，对外人用全名"
+        ),
+        "表达层/身体语言": _bullet_check(
+            "身体语言", "紧张、撒谎或争夺控制权时有什么可观察动作？", "越不确定越放慢动作，右手会停在剑柄一寸外"
+        ),
+        "表达层/注意力偏向": _bullet_check(
+            "注意力偏向", "进入新场景后最先注意什么？", "先看出口、遮蔽物和姐妹之间的距离"
+        ),
     }
 
     # 检查标签四类
