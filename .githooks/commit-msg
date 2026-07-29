@@ -23,6 +23,8 @@ GOVERNANCE_FILES=(
     "05_复盘/reviewer-prompt-template.md"
     "_模板/00_世界观/核心设定.md"
     "_模板/docs/style-locked.md"
+    "_模板/05_复盘/reviewer-protocol.md"
+    "_模板/05_复盘/reviewer-prompt-template.md"
     "_模板/README.md"
 )
 

@@ -27,7 +27,7 @@ from pathlib import Path
 # parents[1] is the project root where AGENTS.md / CLAUDE.md / GEMINI.md sit.
 # If you relocate the script, update this line accordingly — there is no
 # auto-discovery of the project root.
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent.parent
 LINK_NAMES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")
 LINK_PATHS = [ROOT / name for name in LINK_NAMES]
 

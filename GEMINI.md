@@ -15,7 +15,7 @@ converge 本地实现见 [[05_复盘/reviewer-protocol]]，reviewer 启动模板
 
 | 层 | 是什么 | 分发 |
 |----|--------|------|
-| **源码层** | `_模板/` + 治理机制（`.githooks/`、AGENTS.md）+ `scripts/` + 方法文档（`docs/`、`00_世界观/_设计方法.md`）+ `example_world/` | ✓ 可推送到公开仓 |
+| **源码层** | `_模板/` + 治理机制（`.githooks/`、AGENTS.md）+ `scripts/` + 部分方法文档（`docs/` 下除内容层三文件外）+ `00_世界观/_设计方法.md` + `example_world/` | ✓ 可推送到公开仓 |
 | **内容层** | 世界观填写、大纲、角色卡、记忆、关系、正文、伏笔、复盘、`docs/{overview,CURRENT,style-locked}` | ✗ 只留本地，永不推送 |
 
 > 划分清单唯一权威源：`scripts/layers.py`。分发走 `python scripts/publish.py`（剥离内容层 + 复核零泄漏 + 清单确认后 `--force` 推送）。`git push` 被 `.githooks/pre-push` 默认拒绝；推整仓到私有远端 → `git push --no-verify`。
@@ -156,7 +156,7 @@ Conventional Commit（`feat:` / `fix:` / `chore:`）。治理文档提交须含 
 2. **只记正文里读不出来的东西**：世界观、大纲、人物内核、设计决策
 3. **CHANGELOG**：用 `python scripts/changelog.py titles/show/add/recent`，不读全文
 4. **计划落盘**：跨卷/多角色的任务在 `docs/plans/active/` 写计划，完成后移 `completed/`
-   ⚠️ `docs/plans/` 与 `docs/CHANGELOG.md` 属**源码层、会被分发**——含剧透的剧情计划放内容层（`03_正文/第N卷/_准备_*.md` 或 `05_复盘/`）
+   ⚠️ `docs/CHANGELOG.md` 属源码层、会被分发；`docs/plans/` 属内容层、不对外分发——含剧透的剧情计划放 `03_正文/第N卷/_准备_*.md` 或 `05_复盘/`
 5. **定期审计**：每 ~20 次任务或每月，跑 `python scripts/audit.py check`
 
 ## 完工必检

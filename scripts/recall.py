@@ -137,7 +137,7 @@ def cmd_recall(char_names: list[str]):
             output["l2"][name] = []
             continue
 
-        # Phase 1 过滤：取最近 5 条时间序 + pinned + 未解决问题非空
+        # Phase 1 过滤：取前 5 条文件序 + pinned + 未解决问题非空（条目按写入时间倒序追加，文件序即时间序）
         selected = []
         for e in entries[:5]:
             selected.append(e)

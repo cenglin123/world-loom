@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 # Convention: this script lives at <project_root>/scripts/audit.py.
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent.parent
 
 MARKDOWN_LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
 FENCED_BLOCK_RE = re.compile(r"```[\s\S]*?```", re.MULTILINE)
