@@ -18,9 +18,11 @@
 | `_模板/00_世界观/核心设定.md` | `00_世界观/核心设定.md` |
 | `_模板/00_世界观/外围设定.md` | `00_世界观/外围设定.md` |
 | `_模板/01_大纲/主线.md` | `01_大纲/主线.md` |
+| `_模板/01_大纲/README.md` | `01_大纲/README.md` |
 | `_模板/02_人物/_索引.md` | `02_人物/_索引.md` |
 | `_模板/02_人物/relationships.json` | `02_人物/relationships.json` |
 | `_模板/04_伏笔/伏笔登记表.md` | `04_伏笔/伏笔登记表.md` |
+| `_模板/04_伏笔/README.md` | `04_伏笔/README.md` |
 | `_模板/05_复盘/reviewer-protocol.md` | `05_复盘/reviewer-protocol.md` |
 | `_模板/05_复盘/reviewer-prompt-template.md` | `05_复盘/reviewer-prompt-template.md` |
 | `_模板/05_复盘/复盘模板.md` | `05_复盘/复盘模板.md` |

@@ -45,8 +45,10 @@ CONTENT_PATTERNS: tuple[str, ...] = (
 
 # 命中 CONTENT_PATTERNS 但仍属源码层的例外（模板/骨架文件）。
 SOURCE_EXCEPTIONS: tuple[str, ...] = (
+    "01_大纲/README.md",
     "02_人物/人物模板.md",
     "03_正文/README.md",
+    "04_伏笔/README.md",
     "05_复盘/reviewer-protocol.md",
     "05_复盘/reviewer-prompt-template.md",
     "05_复盘/复盘模板.md",
