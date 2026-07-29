@@ -76,8 +76,9 @@ converge 本地实现见 [[05_复盘/reviewer-protocol]]，reviewer 启动模板
 ## 人物创建流程
 
 1. `python scripts/check_tags.py wizard <角色名>` — 从模板创建并输出**待完善清单**（含引导提示和示例值）
-2. 逐条与用户确认后，写入前端 matter 和正文对应字段
-3. 完成后 `python scripts/check_tags.py check` + `python scripts/check_tags.py _index` 更新索引
+2. 与用户确认是否先写「人物小传」——自由叙述角色的经历、性格成因、驱动力。用户自己写，或 agent 根据对话中已透露的信息合成后交用户校对。小传是后续结构化字段的叙事原料，不必面面俱到
+3. 逐条与用户确认结构化字段（形成机制→稳定内核→身份矛盾→表达层），过程中小传作为参考锚点
+4. 完成后 `python scripts/check_tags.py check` + `python scripts/check_tags.py _index` 更新索引
 
 ## 行为规则
 
