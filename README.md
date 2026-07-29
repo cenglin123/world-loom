@@ -1,6 +1,6 @@
-# novel_world_one
+# world-loom
 
-> 一部面向 AI Agent 协作创作的长篇小说项目。
+> 规则即土壤，故事自己长——面向 AI Agent 协作的小说创作辅助系统。
 
 ## 这是什么
 
