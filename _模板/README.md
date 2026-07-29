@@ -1,0 +1,46 @@
+# _模板/ —— 可填写文件的空白骨架
+
+> 本目录按原路径存放每个可填写文件的**空白骨架**。与之同路径的实际文件（去掉 `_模板/` 前缀）是这本书的内容。
+> **两者都入库、都有 git 历史**——区别只在能不能对外分发：`_模板/` 属源码层可分发，内容层永不推送（闸门见 `.githooks/pre-push`，划分清单见 `scripts/layers.py`）。
+
+## 为什么要留一份骨架
+
+一个仓库同时装两种东西：**机制**（模板、治理规则、脚本、方法文档）和**内容**（这本书的世界观、角色、正文）。机制要长期演进并分发给别人，内容是这一本书的。留一份独立骨架之后：
+
+- 模板结构可以独立于本书内容演进、被评审、被分发——不必从写满的文件里反推"原本长什么样"
+- 开新书 = 用本目录重置内容层，机制原样保留（旧内容在 git 历史里仍可找回）
+- 分发时 `publish.py` 直接推 `_模板/`，读者 `template.py init` 就得到完整空白结构
+
+## 覆盖范围
+
+| 模板（源码层，可分发） | 对应内容文件（本地保留历史，不分发） |
+|------|------------|
+| `_模板/00_世界观/核心设定.md` | `00_世界观/核心设定.md` |
+| `_模板/00_世界观/外围设定.md` | `00_世界观/外围设定.md` |
+| `_模板/01_大纲/主线.md` | `01_大纲/主线.md` |
+| `_模板/02_人物/_索引.md` | `02_人物/_索引.md` |
+| `_模板/02_人物/relationships.json` | `02_人物/relationships.json` |
+| `_模板/04_伏笔/伏笔登记表.md` | `04_伏笔/伏笔登记表.md` |
+| `_模板/05_复盘/reviewer-protocol.md` | `05_复盘/reviewer-protocol.md` |
+| `_模板/05_复盘/reviewer-prompt-template.md` | `05_复盘/reviewer-prompt-template.md` |
+| `_模板/05_复盘/复盘模板.md` | `05_复盘/复盘模板.md` |
+| `_模板/05_复盘/README.md` | `05_复盘/README.md` |
+| `_模板/docs/overview.md` | `docs/overview.md` |
+| `_模板/docs/CURRENT.md` | `docs/CURRENT.md` |
+| `_模板/docs/style-locked.md` | `docs/style-locked.md` |
+
+> **不在本目录的模板**：`02_人物/人物模板.md` 是**实例模板**——每新增一个角色就复制出一份新文件，原件始终留在原地且入库，脚本（`check_tags.py wizard`）也依赖其路径。`05_复盘/` 下的协议与模板文件**已纳入本目录**（`reviewer-protocol.md`、`reviewer-prompt-template.md`、`复盘模板.md`、`README.md`），与其他目录对齐。本目录管的是"就地填写、填完即产物"的那类文件 + `05_复盘/` 的方法协议。
+
+## 命令
+
+```bash
+python scripts/template.py check      # 对照表：模板 → 内容文件是否存在、是否已填写
+python scripts/template.py init       # 缺失的内容文件从模板生成（绝不覆盖已存在的文件）
+python scripts/template.py reset <路径...>   # 预览将被重置的文件
+python scripts/template.py reset --all --force   # 真的重置（开新书用；旧内容仍在 git 历史里）
+```
+
+## 改模板的注意事项
+
+- 改模板**不会**自动同步到已存在的内容文件；已在写的书需要人工把结构变化搬过去（或对未填写的文件跑 `reset`）
+- `_模板/docs/style-locked.md` 与 `_模板/00_世界观/核心设定.md` 属治理文件，修改需带 `[governance]` 提交标记

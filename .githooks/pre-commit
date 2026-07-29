@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+set -e
+# novel_world_one — pre-commit hook
+#
+# 源码层（_模板/ + 治理 + 脚本 + 方法文档）与内容层（正文/角色/世界观填写/伏笔/
+# 复盘）同库同分支、都入库，因此下面各项对两层一视同仁。
+# 两层的区别只在能不能对外分发，那由 .githooks/pre-push 把关。
+#
+# 任务: (0) 模板层完整性 (1) AGENTS.md 同步 (2) 伏笔表格式 (3) 关系/标签
+#       (4) 人物卡提醒 (5) 章节校验 (6) 工作流痕迹
+
+# —— 0. 模板层完整性 ——
+# _模板/ 是源码；每个可填写文件都必须有模板骨架，否则新克隆 init 不出完整结构。
+if git -c core.quotepath=false diff --cached --name-only | grep -qE "^(_模板/|scripts/layers\.py)"; then
+    python scripts/template.py check >/dev/null || {
+        echo ""
+        echo "============================================"
+        echo "模板层异常，请检查 _模板/ 与 scripts/layers.py 的划分是否配套。"
+        echo "  python scripts/template.py check"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] template layer ok"
+fi
+
+# —— 1. AGENTS.md / CLAUDE.md / GEMINI.md 同步 ——
+python scripts/agent_links.py check || {
+    echo ""
+    echo "============================================"
+    echo "AGENTS.md / CLAUDE.md / GEMINI.md 内容不一致。"
+    echo "正确流程：仅编辑 AGENTS.md，然后运行:"
+    echo "  python scripts/agent_links.py repair"
+    echo "============================================"
+    exit 1
+}
+
+# —— 2. 伏笔登记表格式完整性 ——
+STAGED=$(git -c core.quotepath=false diff --cached --name-only)
+if echo "$STAGED" | grep -qF "04_伏笔/伏笔登记表.md"; then
+    python scripts/check_foreshadowing.py || {
+        echo ""
+        echo "============================================"
+        echo "伏笔登记表格式异常，请修正后重新提交。"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] foreshadowing table ok"
+fi
+
+# —— 3. 关系数据完整性 ——
+if echo "$STAGED" | grep -qE "(02_人物/relationships.json|02_人物/.*\.md)"; then
+    python scripts/relationship.py check || {
+        echo ""
+        echo "============================================"
+        echo "关系数据不一致，请修正后重新提交。"
+        echo "  python scripts/relationship.py check   # 查看详情"
+        echo "  python scripts/relationship.py list    # 列出所有关系"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] relationships ok"
+fi
+
+# —— 3b. 标签完整性 ——
+if echo "$STAGED" | grep -qE "(02_人物/.*\.md)"; then
+    python scripts/check_tags.py check || {
+        echo ""
+        echo "============================================"
+        echo "标签数据不完整，请修正后重新提交。"
+        echo "  python scripts/check_tags.py check   # 查看详情"
+        echo "  每个角色必须包含四类标签：所属/能力/等级/擅用"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] tags ok"
+fi
+
+# —— 4. 人物卡更新提醒（非阻断） ——
+# 若上下文包被提交，检查其中声明的在场角色的人物卡是否也一起更新了
+CONTEXT_FILES=$(echo "$STAGED" | grep -E "^03_正文/.*_准备_.*\.md$" || true)
+
+if [ -n "$CONTEXT_FILES" ]; then
+    UNTOUCHED_CHARS=""
+    for char_file in 02_人物/*.md; do
+        [ -f "$char_file" ] || continue
+        char_name=$(basename "$char_file" .md)
+        case "$char_name" in _索引|人物模板|README) continue ;; esac
+
+        # 该角色文件未被本次提交修改
+        if ! echo "$STAGED" | grep -qF "$char_file"; then
+            # 该角色的名字是否出现在任一已暂存的上下文包中？
+            for cf in $CONTEXT_FILES; do
+                if [ -f "$cf" ] && grep -qF "$char_name" "$cf" 2>/dev/null; then
+                    UNTOUCHED_CHARS="$UNTOUCHED_CHARS  $char_name"
+                    break
+                fi
+            done
+        fi
+    done
+
+    if [ -n "$UNTOUCHED_CHARS" ]; then
+        echo ""
+        echo "============================================"
+        echo "[REMINDER] 以下角色出现在上下文包中，"
+        echo "但其人物卡（02_人物/<角色名>.md）未被本次提交修改："
+        echo "$UNTOUCHED_CHARS"
+        echo ""
+        echo "请确认：这些角色的 L2 记忆 / 关系 / 人设确实无需更新？"
+        echo "如果有变化但忘了更新，请先更新人物卡再提交。"
+        echo "（此提醒不阻断提交——确认无误后重新提交即可。）"
+        echo "============================================"
+    fi
+    echo "[pre-commit] character update reminder ok"
+fi
+
+# —— 5. 章节就绪自检 + 时空一致性（P0） ——
+CHAPTER_STAGED=$(echo "$STAGED" | grep -E "^03_正文/.*第.*章\.md$" || true)
+if [ -n "$CHAPTER_STAGED" ] || echo "$STAGED" | grep -qE "^03_正文/"; then
+    python scripts/check_chapters.py --staged || {
+        echo ""
+        echo "============================================"
+        echo "章节校验失败（就绪自检/时空一致性）。"
+        echo "  python scripts/check_chapters.py --readiness   # 仅就绪自检"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] chapters ok"
+fi
+
+# —— 6. 四阶段工作流痕迹（v2：白名单豁免 + 粒度/强制力分级） ——
+# 仅 _准备_ 缺失阻断；_审查_/_审查后_ 缺失提醒（过程合规质量交复盘 converge）。
+# 用户手写章节在 frontmatter 声明 author: human 即整体豁免。
+# 注意：commit-time 留痕兜底，对 --no-verify 无效、不覆盖会话期——真实性最终靠 §④ 复盘。
+TRUE_CHAPTERS=$(echo "$STAGED" | grep -E "^03_正文/第.+卷/第[^/]+章\.md$" || true)
+if [ -n "$TRUE_CHAPTERS" ]; then
+    BLOCKERS=""
+    REMINDERS=""
+    for ch in $TRUE_CHAPTERS; do
+        [ -f "$ch" ] || continue
+        # 白名单豁免：用户手写章节显式 author: human
+        if grep -qE "^author:[[:space:]]*human" "$ch"; then continue; fi
+        dir=$(dirname "$ch")
+        base=$(basename "$ch" .md)        # 第M章
+
+        # _准备_ 逐章、阻断级
+        prep="$dir/_准备_${base}.md"
+        if [ ! -f "$prep" ] && ! echo "$STAGED" | grep -qF "$prep"; then
+            BLOCKERS="$BLOCKERS\n  缺 $prep （写前上下文包）"
+        fi
+
+        # _审查_ 卷级/章级/review_ref 任一覆盖即可，提醒级
+        review_ok=""
+        ref=$(grep -E "^review_ref:" "$ch" | head -1 | sed -E 's/^review_ref:[[:space:]]*//' | tr -d "\"' \r")
+        if [ -n "$ref" ] && { [ -f "$dir/$ref" ] || [ -f "03_正文/$ref" ] || [ -f "$ref" ]; }; then
+            review_ok=1
+        fi
+        if [ -z "$review_ok" ] && { [ -f "$dir/_审查_${base}.md" ] || echo "$STAGED" | grep -qF "$dir/_审查_${base}.md"; }; then
+            review_ok=1
+        fi
+        if [ -z "$review_ok" ]; then
+            REMINDERS="$REMINDERS\n  缺 ${base} 的宪法审查留痕（_审查_${base}.md 或 frontmatter review_ref 指向的卷级文件）"
+        fi
+
+        # _审查后_ 写后审，提醒级
+        post="$dir/_审查后_${base}.md"
+        if [ ! -f "$post" ] && ! echo "$STAGED" | grep -qF "$post"; then
+            REMINDERS="$REMINDERS\n  缺 $post （写后 reviewer 结论；存在仅证留痕、不证审查质量）"
+        fi
+    done
+
+    if [ -n "$BLOCKERS" ]; then
+        echo ""
+        echo "============================================"
+        echo "[BLOCK] 以下 agent 章节缺写前准备包（_准备_）："
+        echo -e "$BLOCKERS"
+        echo ""
+        echo "用户手写章节请在 frontmatter 声明 author: human 以豁免本检查。"
+        echo "============================================"
+        exit 1
+    fi
+    if [ -n "$REMINDERS" ]; then
+        echo ""
+        echo "============================================"
+        echo "[REMINDER] 工作流痕迹提示（不阻断）："
+        echo -e "$REMINDERS"
+        echo ""
+        echo "宪法审查/写后审的实质质量由复盘 converge 兜底；此处仅提示留痕缺失。"
+        echo "确认无误后可直接提交。"
+        echo "============================================"
+    fi
+    echo "[pre-commit] workflow artifacts ok"
+fi
+
+echo "[pre-commit] all checks passed"
+exit 0

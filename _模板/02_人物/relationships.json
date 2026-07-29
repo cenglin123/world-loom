@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "version": 1,
+    "description": "人物关系四格数据。key 按字母序：min(nameA,nameB):max(nameA,nameB)。四格中 a_隐藏/a_盲区 以 key 中第一个角色为视角。"
+  },
+  "pairs": {}
+}
