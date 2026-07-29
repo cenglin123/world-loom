@@ -1,7 +1,7 @@
 ---
 model: mimo-v2.5-pro
 generated_at: 2026-07-29T00:00:00Z
-status: converged
+status: completed
 type: implementation-plan
 title: 引导系统模式感知——有限/无限设计框架的 Agent 对话引导改进
 convergence: "05_复盘/20260729-guidance-mode-awareness-convergence.md"
