@@ -26,8 +26,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # 内容层：这些路径是"这一本书"的创作产物，不对外分发。
 CONTENT_PATTERNS: tuple[str, ...] = (
-    "00_世界观/核心设定.md",
-    "00_世界观/外围设定.md",
+    "00_世界观/*",
+    "00_世界观/**/*",
     "01_大纲/*",
     "01_大纲/**/*",
     "02_人物/*",
@@ -51,6 +51,7 @@ CONTENT_PATTERNS: tuple[str, ...] = (
 
 # 命中 CONTENT_PATTERNS 但仍属源码层的例外（模板/骨架文件）。
 SOURCE_EXCEPTIONS: tuple[str, ...] = (
+    "00_世界观/_设计方法.md",
     "01_大纲/README.md",
     "02_人物/人物模板.md",
     "03_正文/README.md",

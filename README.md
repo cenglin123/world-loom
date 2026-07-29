@@ -36,6 +36,7 @@
 │   ├── audit-checklist.md               # 一致性审计清单
 │   ├── pitfalls.md                      # AI 写作陷阱记录
 │   ├── CHANGELOG.md / plans/            # 变更日志 + 执行计划
+│   ├── frontmatter-schemas.md           # ★ Frontmatter 字段定义（唯一权威源）
 ├── 00_世界观/_设计方法.md                 # 世界观构建方法手册
 ├── 01_大纲/README.md                      # 大纲目录说明 + 方法指引
 ├── 02_人物/人物模板.md                    # 实例模板（每个角色复制一份）
@@ -52,11 +53,12 @@
 │   ├── check_tags.py                    # 标签校验 + 角色创建向导
 │   ├── check_chapters.py                # 章节时空一致性 + 就绪自检
 │   ├── check_foreshadowing.py           # 伏笔状态机检查
+│   ├── recall.py                        # 写前上下文召回（角色内核 + L2 记忆）
 │   ├── changelog.py / agent_links.py / audit.py  # 文档维护工具
 └── .githooks/                            # pre-commit + commit-msg（治理）+ pre-push（推送闸门）
 ```
 
-**内容层**（同样入库、同样有 git 历史，但**永不对外推送**）：`00_世界观/{核心设定,外围设定}` · `01_大纲/` · `02_人物/`（角色卡 + 关系 JSON + 索引）· `03_正文/` · `04_伏笔/` · `05_复盘/`（卷复盘 + 治理记录）· `docs/{overview,CURRENT,style-locked}.md`
+**内容层**（同样入库、同样有 git 历史，但**永不对外推送**）：`00_世界观/{核心设定,外围设定}` · `01_大纲/` · `02_人物/`（角色卡 + 关系 JSON + 索引）· `03_正文/` · `04_伏笔/` · `05_复盘/`（卷复盘 + 治理记录）· `docs/plans/` · `docs/{overview,CURRENT,style-locked}.md`
 > 划分清单的唯一权威来源是 `scripts/layers.py`，推送闸门与分发脚本都从那里取。
 
 ## 质量门控

@@ -108,7 +108,7 @@ def _find_last_chapter() -> int | None:
     text_dir = CLUE_FILE.parent.parent / "03_正文"
     if not text_dir.exists():
         return None
-    chapters = sorted(text_dir.glob("第*卷/*.md"))
+    chapters = sorted(text_dir.rglob("第*章.md"))
     if not chapters:
         return None
     # 取最后修改的文件名
