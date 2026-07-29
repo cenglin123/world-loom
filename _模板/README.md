@@ -21,11 +21,15 @@
 | `_模板/02_人物/_索引.md` | `02_人物/_索引.md` |
 | `_模板/02_人物/relationships.json` | `02_人物/relationships.json` |
 | `_模板/04_伏笔/伏笔登记表.md` | `04_伏笔/伏笔登记表.md` |
+| `_模板/05_复盘/reviewer-protocol.md` | `05_复盘/reviewer-protocol.md` |
+| `_模板/05_复盘/reviewer-prompt-template.md` | `05_复盘/reviewer-prompt-template.md` |
+| `_模板/05_复盘/复盘模板.md` | `05_复盘/复盘模板.md` |
+| `_模板/05_复盘/README.md` | `05_复盘/README.md` |
 | `_模板/docs/overview.md` | `docs/overview.md` |
 | `_模板/docs/CURRENT.md` | `docs/CURRENT.md` |
 | `_模板/docs/style-locked.md` | `docs/style-locked.md` |
 
-> **不在本目录的两类模板**：`02_人物/人物模板.md` 和 `05_复盘/复盘模板.md` 是**实例模板**——每新增一个角色/一次复盘就复制出一份新文件，原件始终留在原地且入库，脚本（`check_tags.py wizard`）也依赖其路径。本目录管的是"就地填写、填完即产物"的那类文件。
+> **不在本目录的模板**：`02_人物/人物模板.md` 是**实例模板**——每新增一个角色就复制出一份新文件，原件始终留在原地且入库，脚本（`check_tags.py wizard`）也依赖其路径。`05_复盘/` 下的协议与模板文件**已纳入本目录**（`reviewer-protocol.md`、`reviewer-prompt-template.md`、`复盘模板.md`、`README.md`），与其他目录对齐。本目录管的是"就地填写、填完即产物"的那类文件 + `05_复盘/` 的方法协议。
 
 ## 命令
 

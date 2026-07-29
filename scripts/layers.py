@@ -36,7 +36,8 @@ CONTENT_PATTERNS: tuple[str, ...] = (
     "03_正文/**/*",
     "04_伏笔/*",
     "04_伏笔/**/*",
-    "05_复盘/第*卷_复盘.md",
+    "05_复盘/*",
+    "05_复盘/**/*",
     "docs/overview.md",
     "docs/CURRENT.md",
     "docs/style-locked.md",
@@ -46,6 +47,10 @@ CONTENT_PATTERNS: tuple[str, ...] = (
 SOURCE_EXCEPTIONS: tuple[str, ...] = (
     "02_人物/人物模板.md",
     "03_正文/README.md",
+    "05_复盘/reviewer-protocol.md",
+    "05_复盘/reviewer-prompt-template.md",
+    "05_复盘/复盘模板.md",
+    "05_复盘/README.md",
 )
 
 # _模板/ 下的一切恒为源码层——即使其相对路径长得像内容层。
