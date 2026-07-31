@@ -92,8 +92,8 @@ converge 本地实现见 [[05_复盘/reviewer-protocol]]，reviewer 启动模板
 
 ### 硬约束
 
-- **人设演化记载**：剧情导致人物卡「当前稳定内核」或「身份矛盾」任一字段改变 → 必须在「演化记录」追加触发事件、付出代价、旧状态与新状态；禁止覆盖历史。（无脚本兜底——全靠你）
-- **记忆回写**：每卷/关键场景后，受影响角色的 `02_人物/<角色名>.md` 记忆段必须更新。（无脚本兜底——全靠你）
+- **人设演化记载**：剧情导致人物卡「当前稳定内核」或「身份矛盾」任一字段改变 → 必须在「演化记录」追加触发事件、付出代价、旧状态与新状态；禁止覆盖历史。（脚本兜结构信号：写前包「被动场景·决定」非空 → `check_maintenance.py` 提醒复核；但**是否构成演化**由你判断）
+- **记忆回写**：每卷/关键场景后，受影响角色的 `02_人物/<角色名>.md` 记忆段必须更新。（脚本兜：`check_maintenance.py` 比对章节与人物卡的提交时序，缺失即阻断）
 - **伏笔登记**：新伏笔 → `04_伏笔/伏笔登记表.md` 登记（状态=open），回收后 → closed。不登记 = 不存在 = 收不回来。（脚本兜格式：`check_all.py` 检查已登记伏笔的列数/状态值/超期；但**新伏笔是否登记**是语义判断，脚本查不出——由你负责）
 - **关系同步**：角色间有意义互动后，`python scripts/relationship.py set/update` 写入关系 JSON。卷末 `regenerate` 重建矩阵。（脚本兜完整性：`check_all.py` 检查关系对是否缺失；但**关系是否需要更新**由你判断）
 - **标签同步**：角色创建或能力变化后更新 frontmatter tags。卷末 `python scripts/check_tags.py regenerate`。（脚本兜完整性：`check_all.py` 检查四类标签是否齐全）
@@ -141,6 +141,8 @@ agent 接到"推进剧情"任务时，先跑**就绪自检**，通过后按以�
 - **单人+环境对抗 / 内心冲突**：直接写 + `docs/audit-checklist.md` 对应维度 rubric
 
 正文产出后 spawn 独立 reviewer（只注入上下文包+产出正文，不含写作 agent 推理过程），按 [[docs/audit-checklist]] 小说专项审计 + [[docs/writing-style]] 可读性技法。0 阻断项且 flag ≤ 2 → 通过；不通过 → 修复 → 二审，最多 3 轮。结论写入 `_审查后_第M章.md`（schema 见 [[docs/frontmatter-schemas]]）。reviewer 启动模板：[[05_复盘/reviewer-prompt-template]]。
+
+审稿通过后跑 `python scripts/check_maintenance.py --chapter <路径>` 拿维护待办，**派维护子代理回写**（记忆/关系/演化），你只做派发和确定性验收——协议与 prompt 模板见 [[05_复盘/maintenance-executor]]。
 
 ### ④ 阶段复盘（卷结束时）
 

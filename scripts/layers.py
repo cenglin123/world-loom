@@ -58,6 +58,7 @@ SOURCE_EXCEPTIONS: tuple[str, ...] = (
     "04_伏笔/README.md",
     "05_复盘/reviewer-protocol.md",
     "05_复盘/reviewer-prompt-template.md",
+    "05_复盘/maintenance-executor.md",
     "05_复盘/复盘模板.md",
     "05_复盘/README.md",
 )
