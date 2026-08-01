@@ -354,7 +354,8 @@ def _check_birth_record() -> list[dict[str, Any]]:
 
 
 def _check_line_budget() -> list[dict[str, Any]]:
-    p = ROOT / "AGENTS.md"
+    # 检查分发出去的那份——下游 agent 会话实际加载的是它，预算约束对它才有意义。
+    p = ROOT / "_分发" / "AGENTS.md"
     if not p.is_file():
         return [{"kind": "line_budget", "status": "missing", "lines": 0, "words": 0}]
     text = _read(p)

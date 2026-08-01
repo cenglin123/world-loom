@@ -4,108 +4,71 @@
 
 ## 这是什么
 
-以 **[converge](https://github.com/cenglin123/converge-skill) 迭代收敛**为质量控制核心的小说创作仓库。文档体系按四阶段方法论构建——①宪法审查 → ②写前准备 → ③推进执行 → ④阶段复盘。主管 agent 加载 [AGENTS.md](AGENTS.md) 后即可独立运转全部流程。
+一套让 agent 替你守住细节、你专心想故事的写作系统。
 
-世界观层融合三条方法线：**结构化世界观构建**（物理→社会→张力三层衍生 + 代价体系 + 设定失效驱动）+ **连载长篇可读性技法**（选题/矛盾/悬念/开篇铁律）+ **业界 AI 长篇写作实践**。方法本身在仓库内自足描述，不依赖外部资料；出处见文末[参考来源](#参考来源)。
+你负责世界该长什么样、故事往哪走；agent 负责记住谁在什么时候知道了什么、哪条伏笔还没收、这个角色的性格有没有前后矛盾。这些事情人写长篇时最容易漏，而机器不会累。
+
+系统内置 [converge](https://github.com/cenglin123/converge-skill) 迭代收敛作质量控制核心：写正文的 agent 和审稿的 agent 是两个独立实例，审稿方看不到写作过程，只看最终产出——避免自审盲区。
 
 ## 快速开始
 
-> **第一次用？** 直接看 [使用手册.md](使用手册.md) —— 里面是可直接复制的提示词，按"创建者 / 参与者 / 观察者"三种参与姿态组织。
+克隆之后，打开你的 agent（Claude Code / Cursor / 任何能读 `AGENTS.md` 的工具），说：
 
-### 人类作者
-1. `python scripts/template.py init` —— 从 `_模板/` 生成空白骨架（克隆后第一步）
-2. 打开 [AGENTS.md](AGENTS.md)，让 agent 引导你填世界观 / 大纲 / 角色
-3. 想创建角色？告诉 agent，它会跑 `wizard` 逐字段带你填
-4. 想推进剧情？告诉 agent 方向，它会跑宪法审查 → 写前准备 → 执行 → 复盘
+```
+初始化一下这个项目，我准备开始
+```
 
-### AI Agent
-1. 加载 [AGENTS.md](AGENTS.md) → 理解源码层/内容层边界、硬约束、四阶段工作流
-2. 接到"推进剧情"任务 → 先跑就绪自检 → 通过后按 ①→②→③→④ 执行
-3. 使用 `python scripts/check_tags.py wizard <角色名>` 引导用户创建角色
-4. 完工前跑 `python scripts/check_all.py` —— 全仓机械校验，完工清单必检项
-5. 内容与源码同库同分支，正常 `git commit`；**`git push` 会被闸门拒绝**——分发走 `python scripts/publish.py`
+然后照 [使用手册.md](使用手册.md) 里的提示词往下走。手册按**创建者 / 参与者 / 观察者**三种参与姿态组织——你可以主导每个细节，也可以只给方向，甚至只是看着故事自己长出来。
 
-## 项目结构
+什么都没想好也能开始，直接说「我想写小说，但还没想好写什么」。
 
-**源码层**（入库、可推送）：
+## 目录结构
 
 ```
 ├── AGENTS.md / CLAUDE.md / GEMINI.md   # Agent 入口（三文件同步）
-├── README.md                            # 人类入口（项目设计）
-├── 使用手册.md                           # ★ 用户入口（示例提示词 + 三种参与姿态）
-├── _模板/                                # ★ 可填写文件的空白骨架（按原路径镜像）
+├── README.md                            # 你在这
+├── 使用手册.md                           # ★ 提示词入口，从这开始
+├── _模板/                                # 空白骨架，init 时生成到对应位置
+├── 00_世界观/_设计方法.md                 # 世界观构建方法（物理→社会→张力三层）
+├── 01_大纲/README.md                      # 七种大纲推导模式 + 展开阶梯
+├── 02_人物/人物模板.md                    # 人物生成模型（每个角色复制一份）
+├── 03_正文/README.md                      # 章节存放约定
+├── 04_伏笔/README.md                      # 伏笔状态机
+├── 05_复盘/                              # converge 协议 + reviewer / 维护子代理模板
 ├── docs/
 │   ├── writing-style.md                 # 叙述约定 + 可读性技法 + 故事驱动法则
 │   ├── audit-checklist.md               # 一致性审计清单
-│   ├── pitfalls.md                      # AI 写作陷阱记录
-│   ├── CHANGELOG.md / plans/            # 变更日志 + 执行计划
-│   ├── frontmatter-schemas.md           # ★ Frontmatter 字段定义（唯一权威源）
-├── 00_世界观/_设计方法.md                 # 世界观构建方法手册
-├── 01_大纲/README.md                      # 大纲目录说明 + 方法指引
-├── 02_人物/人物模板.md                    # 实例模板（每个角色复制一份）
-├── 03_正文/README.md                      # 正文章节目录说明
-├── 04_伏笔/README.md                      # 伏笔目录说明 + 工具指引
-├── 05_复盘/                              # README + converge 协议 + reviewer 模板 + 复盘模板
-├── example_world/                        # 示例世界（教学用，非本书内容）
+│   ├── frontmatter-schemas.md           # 字段定义（唯一权威源）
+│   └── pitfalls.md                      # AI 写作已知陷阱
+├── example_world/                        # 填好之后长什么样的演示实例
 ├── scripts/                              # CLI 工具链
-│   ├── layers.py                        # ★ 源码层/内容层划分（唯一权威源）
-│   ├── publish.py                       # ★ 剥离内容层后分发模板
-│   ├── template.py                      # ★ 模板 ↔ 内容：check / init / reset
-│   ├── check_all.py                     # ★ 全仓机械校验总入口
-│   ├── relationship.py                  # 人物关系四格 CRUD
-│   ├── check_tags.py                    # 标签校验 + 角色创建向导
-│   ├── check_chapters.py                # 章节时空一致性 + 就绪自检
-│   ├── check_foreshadowing.py           # 伏笔状态机检查
-│   ├── recall.py                        # 写前上下文召回（角色内核 + L2 记忆）
-│   ├── changelog.py / agent_links.py / audit.py  # 文档维护工具
-└── .githooks/                            # pre-commit + commit-msg（治理）+ pre-push（推送闸门）
+└── .githooks/                            # 提交前自动校验
 ```
 
-**内容层**（同样入库、同样有 git 历史，但**永不对外推送**）：`00_世界观/{核心设定,外围设定}` · `01_大纲/` · `02_人物/`（角色卡 + 关系 JSON + 索引）· `03_正文/` · `04_伏笔/` · `05_复盘/`（卷复盘 + 治理记录）· `docs/plans/` · `docs/{overview,CURRENT,style-locked}.md`
-> 划分清单的唯一权威来源是 `scripts/layers.py`，推送闸门与分发脚本都从那里取。
+## 系统替你守住什么
 
-## 质量门控
-
-| 机制 | 时机 | 检查项 |
+| 机制 | 时机 | 守什么 |
 |------|------|--------|
-| **pre-commit 阻断** | 每次提交 | AGENTS 三文件同步 / 模板层完整性 / 伏笔表格式 / 关系 JSON / 标签四类 / 章节时空一致 + 就绪自检 / 工作流痕迹（`_准备_` 缺失阻断）|
-| **pre-commit 提醒** | 每次提交 | 人物卡更新提醒（上下文包中的在场角色卡是否同期修改） |
-| **commit-msg 阻断** | 每次提交 | 治理文档修改必须含 `[governance]` 标记（清单见 `.githooks/commit-msg`） |
-| **pre-push 阻断** | 每次推送 | **默认拒绝一切推送**，分发只能走 `publish.py` |
-| **`scripts/check_all.py`** | 完工清单必跑 | 上述机械检查器的全仓版（hook 只看暂存区，这条看当前全量状态） |
-| **复盘 converge** | 卷末 | 语义层——人设/记忆/世界观/伏笔漂移，机械层查不出的部分 |
+| **就绪自检** | 动笔前 | 世界观/主线/角色/文风没定齐就不让开写 |
+| **宪法审查** | 每章前 | 新剧情是否违反已定的世界法则 |
+| **独立审稿** | 每章后 | 人设漂移、记忆矛盾、伏笔悬空、时间线倒流 |
+| **维护子代理** | 审稿通过后 | 自动回写角色记忆、关系变化、人设演化 |
+| **pre-commit** | 每次提交 | 格式完整性 + 工作流留痕 |
+| **卷末 converge** | 每卷 | 机械层查不出的语义一致性，多轮收敛到零阻断 |
 
-## 单分支 + 推送闸门
+想随时体检，跟 agent 说「体检一下，看看有没有问题」。
 
-**单分支运行，内容和源码都进 git，写坏了能 `git checkout` 回退。** 内容不外泄由推送闸门保证，不靠人为纪律：
+## 方法论来源
 
-```bash
-git clone <repo>
-python scripts/template.py init              # 生成空白骨架，开写
-python scripts/template.py check             # 模板 → 内容对照表
-git commit -m "feat: 第三章初稿"             # 内容照常入库，有完整历史
+功能性文档按方法本身的作用命名（「地形生成法」「反差身份设计法」「可读性技法」），出处集中在此：
 
-git push                                     # ✗ 被 pre-push 拒绝
-python scripts/publish.py                    # 预览：将公开哪些源码层文件
-python scripts/publish.py --force            # 剥离内容层后推送到 origin/main
-git push --no-verify <私有远端> main          # 有意为之的例外：整仓（含正文）推私有仓
-
-python scripts/template.py reset --all --force   # 开新书：内容层重置（git 里仍有历史）
-```
-
-`publish.py` 的保证：以 HEAD 为基础剥掉全部内容层 → 复核生成的树里**一个内容层文件都没有** → 打印将公开的完整文件清单 → 确认后才推。漏推不靠人记，靠脚本和 hook 双重兜底。
+- **世界观构建方法**（[00_世界观/_设计方法.md](00_世界观/_设计方法.md) + [docs/writing-style.md](docs/writing-style.md) 故事驱动法则）：改编自 Bilibili UP 主 **-以筠-** 的世界观设计系列，仓库内为可执行凝练版，非原文转载
+- **连载长篇可读性技法**（[docs/writing-style.md](docs/writing-style.md)）：整理自端木灵星《小说写作、投稿技巧与经验汇总》
+- **大纲展开阶梯**（[01_大纲/README.md](01_大纲/README.md)）：雪花写作法（Randy Ingermanson）+ 场景/续场结构（Dwight Swain）
+- **converge 迭代收敛**：本地实现见 [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md)
 
 ## 技术说明
 
-- **文档格式**：Markdown（Obsidian 兼容，支持 wikilink `[[]]`）
-- **版本控制**：Git（单分支，内容与源码全量入库；对外分发由 pre-push 闸门 + `publish.py` 把关；换行统一 LF）
-- **治理工具**：converge 迭代收敛（本地实现，不依赖外部 SKILL）
-- **方法论依据**：converge 迭代收敛 + 结构化世界观构建 + 连载长篇可读性技法 + 业界 AI 写作实践
-
-## 参考来源
-
-功能性文档只按方法本身的作用命名（如「地形生成法」「反差身份设计法」「可读性技法」），出处集中记在此处，便于 agent 直接理解方法含义而不必先认人：
-
-- **世界观构建方法**（[00_世界观/_设计方法.md](00_世界观/_设计方法.md) 各模块 + [docs/writing-style.md](docs/writing-style.md) 故事驱动法则）：改编自 Bilibili UP 主 **-以筠-** 的世界观设计系列，仓库内为可执行凝练版，非原文转载。
-- **连载长篇可读性技法**（[docs/writing-style.md](docs/writing-style.md)）：整理自端木灵星《小说写作、投稿技巧与经验汇总》。
-- **converge 迭代收敛**：本地实现见 [05_复盘/reviewer-protocol.md](05_复盘/reviewer-protocol.md)。
+- **文档格式**：Markdown，兼容 Obsidian（支持 `[[wikilink]]`）
+- **版本控制**：Git 单分支，换行统一 LF
+- **无外部依赖**：脚本只用 Python 标准库

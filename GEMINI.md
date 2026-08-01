@@ -7,20 +7,16 @@
 
 一部正在创作中的长篇小说。Agent 的角色是**受托的执行者 + 质量守护者**——按四阶段工作流推进剧情，用宪法审查 + converge 迭代收敛防止漂移（吃书）。
 
-不可改动的硬设定在 `00_世界观/核心设定.md`，任何人（含 agent 和用户）要改都必须走多轮独立评审。
+不可改动的硬设定在 `00_世界观/核心设定.md`，任何人（含 agent 和用户）要改都必须走多轮独立评审，且提交时带 `[governance]` 标记。
 
 converge 本地实现见 [[05_复盘/reviewer-protocol]]，reviewer 启动模板见 [[05_复盘/reviewer-prompt-template]]。所有多轮审查、收敛判定、阻断分类走这套协议，不依赖外部 SKILL。
 
-## 源码层 / 内容层
+用户侧入口是 [[使用手册]]——里面是可直接复制的提示词，按创建者/参与者/观察者三种参与姿态组织。
 
-| 层 | 是什么 | 分发 |
-|----|--------|------|
-| **源码层** | `_模板/` + 治理机制（`.githooks/`、AGENTS.md）+ `scripts/` + 部分方法文档（`docs/` 下除内容层三文件外）+ `00_世界观/_设计方法.md` + `example_world/` | ✓ 可推送到公开仓 |
-| **内容层** | 世界观填写、大纲、角色卡、记忆、关系、正文、伏笔、复盘、`docs/{overview,CURRENT,style-locked}` | ✗ 只留本地，永不推送 |
+## 初始化
 
-> 划分清单唯一权威源：`scripts/layers.py`。分发走 `python scripts/publish.py`（剥离内容层 + 复核零泄漏 + 清单确认后 `--force` 推送）。`git push` 被 `.githooks/pre-push` 默认拒绝；推整仓到私有远端 → `git push --no-verify`。
->
-> 新克隆 / 内容文件缺失 → `python scripts/template.py init`；开新书 → `python scripts/template.py reset --all --force`。
+新克隆 / 内容文件缺失 → `python scripts/template.py init`（从 `_模板/` 生成空白骨架，绝不覆盖已有文件）。
+开新书 → `python scripts/template.py reset --all --force`（内容清空、机制保留，旧内容仍在 git 历史里）。
 
 ## 就绪自检（接到"推进剧情"任务前强制执行）
 
@@ -31,7 +27,7 @@ converge 本地实现见 [[05_复盘/reviewer-protocol]]，reviewer 启动模板
 3. `02_人物/_索引.md` 角色清单**至少有一个实际角色**（不含示例/模板行）
 4. `docs/style-locked.md` 的视角和时态段**已选定**（非"待选择"）
 
-> 失败时引导用户按 CURRENT.md '下一步'清单逐项填写。若这些文件**不存在**（新克隆只有 `_模板/`）→ 先跑 `python scripts/template.py init`。
+> 失败时引导用户按 CURRENT.md '下一步'清单逐项填写。若这些文件**不存在** → 先跑 `python scripts/template.py init`。
 
 ## 引导模式感知
 
@@ -46,34 +42,36 @@ converge 本地实现见 [[05_复盘/reviewer-protocol]]，reviewer 启动模板
 
 **切换信号**：无限→有限：重复改设定 ≥5 轮 / 提到"读者""发表" / 对故事表达兴趣。有限→无限：写不动 / 反复翻看设定文件 / 正文停滞 ≥2 轮。Agent 自然提议而非强制——"要不要换一个视角看看？"
 
-**零素材引导**（与有限/无限正交的另一轴）：用户只说"我要写小说"等无任何素材的开场 → **先给后问，禁止方法论倾倒**。追问对零素材用户无效（只会得到"我不知道"）。正确做法：给 3-4 个具体起点（世界/人/画面/情绪各一个 20-30 字例子，见 [[01_大纲/README]]「模式零」）让用户反应——赞同或反对都算有效信号，据此转入对应模式。不列六种模式清单（那是给已有素材者看的）。用户侧入口见 [[使用手册]]。
+**零素材引导**（与有限/无限正交的另一轴）：用户只说"我要写小说"等无任何素材的开场 → **先给后问，禁止方法论倾倒**。追问对零素材用户无效（只会得到"我不知道"）。正确做法：给 3-4 个具体起点（世界/人/画面/情绪各一个 20-30 字例子，见 [[01_大纲/README]]「模式零」）让用户反应——赞同或反对都算有效信号，据此转入对应模式。不列七种模式清单（那是给已有素材者看的）。
 
 ## 同步声明
 
-`python scripts/agent_links.py check` / `repair` / `repair --force`，模式 copy。
+修改本文件后跑 `python scripts/agent_links.py repair`，同步 CLAUDE.md / GEMINI.md（模式 copy）。
 
 ## 信息导航
 
 | 需要什么 | 去哪找 |
 |---------|--------|
+| 用户侧提示词入口 | [[使用手册]] |
 | Frontmatter 字段定义（人物卡/章节/写后审结论） | [[docs/frontmatter-schemas]] |
 | 项目总览 + 世界观梗概 + 关键设计决策 | [[docs/overview]] |
 | 叙述约定·锁定层（视角/时态/文风注册表，治理保护） | [[docs/style-locked]] |
 | 叙述约定·工艺层（文风倾向/可读性技法/故事驱动法则） | [[docs/writing-style]] |
-| AI 写作已知陷阱（本项目专属） | [[docs/pitfalls]] |
+| AI 写作已知陷阱 | [[docs/pitfalls]] |
 | 一致性审计清单 | [[docs/audit-checklist]] |
 | 复杂任务计划 | [[docs/plans/active/]] |
 | 当前任务状态 | [[docs/CURRENT]] |
 | 变更记录 | [[docs/CHANGELOG]] |
-| 模板层与内容层的边界、重置命令 | [[_模板/README]] + `scripts/layers.py`（划分权威源） |
+| 空白骨架与重置命令 | [[_模板/README]] |
 | 世界观（物理层 locked + 社会层/张力层可扩展） | [[00_世界观/核心设定]] |
 | 世界观·外围（可扩展） | [[00_世界观/外围设定]] |
 | 世界观构建方法 | [[00_世界观/_设计方法]] |
-| 故事大纲（主线 + 分卷） | [[01_大纲/主线]] |
+| 故事大纲（七种推导模式 + 展开阶梯） | [[01_大纲/README]] → [[01_大纲/主线]] |
 | 人物 | [[02_人物/_索引]] + [[02_人物/relationships.json]] + `scripts/check_tags.py` |
 | 伏笔登记（open/closed 状态机） | [[04_伏笔/伏笔登记表]] |
 | 正文章节 | [[03_正文/README]] |
 | 复盘 converge 协议 + reviewer 模板 | [[05_复盘/reviewer-protocol]] → [[05_复盘/reviewer-prompt-template]] |
+| 维护子代理协议（记忆/关系/演化回写） | [[05_复盘/maintenance-executor]] |
 
 ## 人物创建流程
 
@@ -97,7 +95,7 @@ converge 本地实现见 [[05_复盘/reviewer-protocol]]，reviewer 启动模板
 - **伏笔登记**：新伏笔 → `04_伏笔/伏笔登记表.md` 登记（状态=open），回收后 → closed。不登记 = 不存在 = 收不回来。（脚本兜格式：`check_all.py` 检查已登记伏笔的列数/状态值/超期；但**新伏笔是否登记**是语义判断，脚本查不出——由你负责）
 - **关系同步**：角色间有意义互动后，`python scripts/relationship.py set/update` 写入关系 JSON。卷末 `regenerate` 重建矩阵。（脚本兜完整性：`check_all.py` 检查关系对是否缺失；但**关系是否需要更新**由你判断）
 - **标签同步**：角色创建或能力变化后更新 frontmatter tags。卷末 `python scripts/check_tags.py regenerate`。（脚本兜完整性：`check_all.py` 检查四类标签是否齐全）
-- **治理文档**：修改 `.githooks/commit-msg` 的 `GOVERNANCE_FILES` 清单内任一文件 → commit message 必须含 `[governance]` 标记。清单为该文件的唯一权威源。（`commit-msg` hook 拒绝缺失标记的提交——在 `git commit` 时触发，不在 `check_all.py` 中）
+- **受保护文档**：世界观硬设定（`00_世界观/核心设定.md`）、锁定层叙述约定（`docs/style-locked.md`）等文件的修改，commit message 必须含 `[governance]` 标记。完整清单是 `.githooks/commit-msg` 的 `GOVERNANCE_FILES`，该文件为唯一权威源。（hook 在 `git commit` 时拒绝缺标记的提交）
 
 ### 默认偏好
 
@@ -128,7 +126,7 @@ agent 接到"推进剧情"任务时，先跑**就绪自检**，通过后按以�
 **必须做**：
 1. 确定在场角色列表
 2. 注入角色当前状态——查阅 `02_人物/<角色名>.md` 的记忆段 + `02_人物/relationships.json` 的关系摘要
-3. 将以上与本场大纲、场景初始状态、**场景决策**（Belief / Desire / Intention / Obstacle / Tactic / 换挡条件 / 可接受代价）和**达成断言**组装为自然语言；达成断言至少 1 条，并覆盖在场角色的本场目标及一个相关的人设字段
+3. 将以上与本场大纲、场景初始状态、**场景决策**（主动场景：Belief / Desire / Intention / Obstacle / Tactic / 换挡条件 / 可接受代价；被动场景：反应 / 困境 / 决定）和**达成断言**组装为自然语言；达成断言至少 1 条，并覆盖在场角色的本场目标及一个相关的人设字段
 
 **快捷工具**（非必须——替代手动查阅，效果相同）：
 - `python scripts/recall.py <角色1> <角色2>` — 获取多角色的人物生成内核 + L2 写前注入集摘要。**输出需 agent 压缩转写为自然语言，不机械粘贴。**
@@ -152,7 +150,7 @@ agent 接到"推进剧情"任务时，先跑**就绪自检**，通过后按以�
 
 ## 提交规范
 
-Conventional Commit（`feat:` / `fix:` / `chore:`）。治理文档提交须含 `[governance]` 标记（清单见 `.githooks/commit-msg`）。完成一卷或关键场景后主动提交。
+Conventional Commit（`feat:` / `fix:` / `chore:`）。受保护文档的提交须含 `[governance]` 标记（清单见 `.githooks/commit-msg`）。完成一卷或关键场景后主动提交。
 
 ## 文档维护原则
 
@@ -161,7 +159,6 @@ Conventional Commit（`feat:` / `fix:` / `chore:`）。治理文档提交须含 
 3. **只记正文里读不出来的东西**：世界观、大纲、人物内核、设计决策
 4. **CHANGELOG**：用 `python scripts/changelog.py titles/show/add/recent`，不读全文
 5. **计划落盘**：跨卷/多角色的任务在 `docs/plans/active/` 写计划，完成后移 `completed/`
-   ⚠️ `docs/CHANGELOG.md` 属源码层、会被分发；`docs/plans/` 属内容层、不对外分发——含剧透的剧情计划放 `03_正文/第N卷/_准备_*.md` 或 `05_复盘/`
 6. **定期审计**：每 ~20 次任务或每月，跑 `python scripts/audit.py check`
 
 ## 完工必检
