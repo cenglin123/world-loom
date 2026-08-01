@@ -1,0 +1,94 @@
+# 开发规范
+
+> world-loom 工具包本身的开发约定。**本文件不对外分发。**
+> 使用层规范在 `_分发/AGENTS.md`——改那里，不改这里。
+
+## 三层的边界
+
+| 层 | 判据 | 例子 |
+|----|------|------|
+| **源码层** | 下游用户需要的工具与方法 | `_模板/` `_分发/` `scripts/` `.githooks/` `使用手册.md` `docs/writing-style.md` |
+| **内容层** | 这本书的创作产物 | 世界观填写、大纲、角色卡、正文、伏笔、卷复盘、`docs/{overview,CURRENT,style-locked,CHANGELOG,plans}` |
+| **开发层** | 造这套工具的过程 | `AGENTS.md` `README.md` `docs/development.md` converge 治理记录 |
+
+内容层与开发层在机制上等同——`layers.py` 的 `is_content()` 对两者都返回 True，都不分发。区分只在语义，方便判断"这东西该往哪写"。
+
+**唯一权威源是 `scripts/layers.py`**。新增目录只改那一处，`publish.py` 和 `.githooks/pre-push` 都从它取清单。
+
+## 分发映射
+
+下游用户拿到的 `AGENTS.md` / `README.md` 不是本仓根目录那两份——那是开发版。分发时由 `publish.py` 做路径映射：
+
+```
+_分发/AGENTS.md  →  AGENTS.md + CLAUDE.md + GEMINI.md
+_分发/README.md  →  README.md
+```
+
+同一个 git blob 映射多个文件名，单一源，天然同步。映射完成后 `_分发/` 目录本身从分发树里移除。
+
+映射表在 `scripts/publish.py` 的 `DIST_MAP`。
+
+**改使用层规则改 `_分发/AGENTS.md`**。它不参与 `agent_links.py` 的三文件同步——那个脚本管的是根目录开发版。
+
+## 分发流程
+
+```bash
+python scripts/publish.py            # dry-run：打印将公开的完整清单
+python scripts/publish.py --force    # 真推
+```
+
+`--force` 时的完整链路：
+
+1. 以 HEAD 建临时索引（`.git/publish-index`），删掉全部内容层与开发层路径
+2. 应用 `DIST_MAP` 映射，移除 `_分发/`
+3. **硬复核**：树里不含内容层文件（映射产生的路径豁免）、不含 `_分发/` 残留
+4. 打印完整文件清单
+5. `write-tree` → `commit-tree` → 落到本地 `template-dist` 分支
+6. 带 `NOVEL_PUBLISH=1` 推送（这是 `pre-push` 唯一放行条件）
+
+工作区脏时拒绝执行——分发基于 HEAD，未提交的改动不会出去。
+
+### 推送闸门
+
+`.githooks/pre-push` 默认拒绝一切推送。两个出口：
+
+- `publish.py` 设 `NOVEL_PUBLISH=1` 放行，且逐 ref 复核树内零内容层文件
+- 整仓推私有远端：`git push --no-verify`
+
+## 治理清单
+
+`.githooks/commit-msg` 的 `GOVERNANCE_FILES` 是唯一权威源。清单覆盖两类：
+
+- **使用层受保护文档**：世界观硬设定、`docs/style-locked.md`、审计清单、reviewer 协议、维护协议——保护下游用户的创作基线
+- **开发层机制文件**：`layers.py` `publish.py` 三个 hook `_分发/AGENTS.md`
+
+内容层文件与其 `_模板/` 骨架**成对保护**——改哪一份都要标记，否则模板与产物会漂移。
+
+## 机制化三分判据
+
+判断一件事该不该脚本化，三条都满足才做：
+
+1. **机制不执行任务本身**——只检测缺失信号，不代替 agent 做判断。`check_maintenance.py` 报"记忆没回写"，但不代写记忆
+2. **不收窄编排空间**——agent 仍可判定"这里确实不需要"，机制提供明示出口（如 `maintenance_skip`）
+3. **契约违反 fail-closed，判断分歧 fail-open**——结构性缺失阻断，语义判断只提醒
+
+反例：给文风做正则黑名单。它违反第 2 条（收窄表达空间）且误报高。按 Bitter Lesson，语义一致性交 LLM + converge，不硬编词表。
+
+## 检查器清单
+
+`scripts/check_all.py` 的 `CHECKS` 是权威源，新增机械检查只改那一处。当前八项：同步 / 模板 / 死链 / 伏笔 / 关系 / 标签 / 章节 / 维护。
+
+hook 只扫暂存区，`check_all.py` 扫全量工作区——互补，不重复。
+
+## 分发前自检
+
+改动使用层文档后：
+
+```bash
+python scripts/check_all.py --quiet    # 无输出 = 通过
+python scripts/publish.py              # dry-run，逐行核对清单
+```
+
+重点看两件事：**开发层文件有没有混进清单**、**映射的三个文件名有没有正确出现**。
+
+`_分发/AGENTS.md` 里引用的每个路径都必须在分发树里存在——它引用的内容层文件（如 `01_大纲/主线.md`）要有对应的 `_模板/` 骨架，否则下游 `init` 之后仍是死链。

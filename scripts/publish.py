@@ -31,6 +31,14 @@ ROOT = Path(__file__).resolve().parent.parent
 DIST_BRANCH = "template-dist"
 PUBLISH_INDEX = ".git/publish-index"
 
+# 分发映射：`_分发/` 下的使用层治理文档 → 目标树里的实际路径。
+# 开发层的根 AGENTS.md 属内容层、已被剥离，这里把使用版填进它的位置。
+DIST_DIR = "_分发"
+DIST_MAP: dict[str, tuple[str, ...]] = {
+    f"{DIST_DIR}/AGENTS.md": ("AGENTS.md", "CLAUDE.md", "GEMINI.md"),
+    f"{DIST_DIR}/README.md": ("README.md",),
+}
+
 
 def _git(*args: str, env: dict | None = None, check: bool = True) -> str:
     full_env = {**os.environ, **(env or {})}
@@ -53,8 +61,29 @@ def _rev(ref: str) -> str | None:
     return proc.stdout.strip() or None
 
 
-def build_dist_tree() -> tuple[str, list[str], list[str]]:
-    """返回 (tree_sha, 公开文件清单, 被排除的内容层文件清单)。"""
+def _apply_dist_map(env: dict) -> list[str]:
+    """把 `_分发/` 下的使用层文档映射到目标路径，再从树里移除 `_分发/` 本身。
+
+    同一个 blob 映射多个文件名——单一源，天然同步，不存在漂移。
+    返回映射产生的目标路径清单（供清单打印时说明来源）。
+    """
+    mapped: list[str] = []
+    for src, targets in DIST_MAP.items():
+        sha = _git("rev-parse", f"HEAD:{src}", check=False).strip()
+        if not sha:
+            raise SystemExit(
+                f"[FAIL] 分发源 {src} 不存在于 HEAD——使用层治理文档缺失，中止分发"
+            )
+        for tgt in targets:
+            _git("update-index", "--add", "--cacheinfo", f"100644,{sha},{tgt}",
+                 env=env)
+            mapped.append(tgt)
+    _git("rm", "--cached", "-r", "--quiet", "--ignore-unmatch", DIST_DIR, env=env)
+    return mapped
+
+
+def build_dist_tree() -> tuple[str, list[str], list[str], list[str]]:
+    """返回 (tree_sha, 公开文件清单, 被排除的内容层清单, 映射产生的路径)。"""
     env = {"GIT_INDEX_FILE": PUBLISH_INDEX}
     _git("read-tree", "HEAD", env=env)
 
@@ -66,9 +95,11 @@ def build_dist_tree() -> tuple[str, list[str], list[str]]:
             _git("rm", "--cached", "-r", "--quiet", "--ignore-unmatch",
                  *content[i:i + 200], env=env)
 
+    mapped = _apply_dist_map(env)
+
     tree = _git("write-tree", env=env)
     published = [f for f in _git("ls-files", env=env).splitlines() if f]
-    return tree, published, content
+    return tree, published, content, mapped
 
 
 def main() -> int:
@@ -89,10 +120,12 @@ def main() -> int:
         print("\n".join("    " + ln for ln in dirty.splitlines()[:15]))
         return 1
 
-    tree, published, excluded = build_dist_tree()
+    tree, published, excluded, mapped = build_dist_tree()
 
-    # —— 硬复核：树里绝不能有内容层文件 ——
-    leaked = [f for f in published if is_content(f)]
+    # —— 硬复核 1：树里绝不能有内容层/开发层文件 ——
+    # 映射产生的路径豁免：它们的内容来自 _分发/（源码层），只是借用了内容层的路径名。
+    mapped_set = set(mapped)
+    leaked = [f for f in published if is_content(f) and f not in mapped_set]
     if leaked:
         print(f"[BLOCK] 分发树里仍有 {len(leaked)} 个内容层文件，已中止：")
         for f in leaked:
@@ -100,10 +133,20 @@ def main() -> int:
         print("请检查 scripts/layers.py 的 CONTENT_PATTERNS。")
         return 1
 
+    # —— 硬复核 2：`_分发/` 目录本身不能出现在分发树里 ——
+    stray = [f for f in published if f.startswith(f"{DIST_DIR}/")]
+    if stray:
+        print(f"[BLOCK] 分发树里残留 {len(stray)} 个 {DIST_DIR}/ 文件，已中止：")
+        for f in stray:
+            print(f"    {f}")
+        return 1
+
     print(f"将公开 {len(published)} 个源码层文件：")
     for f in published:
-        print(f"  + {f}")
-    print(f"\n已排除 {len(excluded)} 个内容层文件（正文/角色/世界观填写等，一个都不会出去）")
+        tag = f"   ← 由 {DIST_DIR}/AGENTS.md 映射" if f in mapped_set else ""
+        print(f"  + {f}{tag}")
+    print(f"\n已排除 {len(excluded)} 个内容层/开发层文件（正文/角色/世界观填写/"
+          f"开发规范等，一个都不会出去）")
 
     if not args.force:
         print("\n[DRY-RUN] 未创建提交、未推送。确认清单无误后加 --force 执行。")

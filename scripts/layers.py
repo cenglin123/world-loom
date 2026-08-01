@@ -46,7 +46,14 @@ CONTENT_PATTERNS: tuple[str, ...] = (
     "docs/plans/deferred/**/*",
     "docs/overview.md",
     "docs/CURRENT.md",
+    "docs/CHANGELOG.md",
     "docs/style-locked.md",
+    # 开发层：造这套工具的过程，机制上等同内容层（都不分发）
+    "docs/development.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    "README.md",
 )
 
 # 命中 CONTENT_PATTERNS 但仍属源码层的例外（模板/骨架文件）。
@@ -63,8 +70,8 @@ SOURCE_EXCEPTIONS: tuple[str, ...] = (
     "05_复盘/README.md",
 )
 
-# _模板/ 下的一切恒为源码层——即使其相对路径长得像内容层。
-ALWAYS_SOURCE_PREFIXES: tuple[str, ...] = ("_模板/",)
+# _模板/（空白骨架）与 _分发/（待分发的使用层治理文档）恒为源码层。
+ALWAYS_SOURCE_PREFIXES: tuple[str, ...] = ("_模板/", "_分发/")
 
 
 def is_content(path: str) -> bool:

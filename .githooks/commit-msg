@@ -10,6 +10,8 @@ COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 # 内容层文件与其 _模板/ 下的骨架成对保护（改哪一份都要标记）。
 GOVERNANCE_FILES=(
     "AGENTS.md"
+    "_分发/AGENTS.md"
+    "_分发/README.md"
     ".githooks/pre-commit"
     ".githooks/commit-msg"
     ".githooks/pre-push"
