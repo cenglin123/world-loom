@@ -25,19 +25,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from layers import is_content  # noqa: E402
+from layers import DIST_DIR, DIST_MAP, is_content  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST_BRANCH = "template-dist"
 PUBLISH_INDEX = ".git/publish-index"
-
-# 分发映射：`_分发/` 下的使用层治理文档 → 目标树里的实际路径。
-# 开发层的根 AGENTS.md 属内容层、已被剥离，这里把使用版填进它的位置。
-DIST_DIR = "_分发"
-DIST_MAP: dict[str, tuple[str, ...]] = {
-    f"{DIST_DIR}/AGENTS.md": ("AGENTS.md", "CLAUDE.md", "GEMINI.md"),
-    f"{DIST_DIR}/README.md": ("README.md",),
-}
 
 
 def _git(*args: str, env: dict | None = None, check: bool = True) -> str:

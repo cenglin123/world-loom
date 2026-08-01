@@ -73,6 +73,19 @@ SOURCE_EXCEPTIONS: tuple[str, ...] = (
 # _模板/（空白骨架）与 _分发/（待分发的使用层治理文档）恒为源码层。
 ALWAYS_SOURCE_PREFIXES: tuple[str, ...] = ("_模板/", "_分发/")
 
+# 分发映射：`_分发/` 下的使用层文档 → 分发树里的实际路径。
+# 根目录同名文件是**开发版**（内容层，不分发），分发时由 publish.py 用使用版覆盖。
+DIST_DIR = "_分发"
+DIST_MAP: dict[str, tuple[str, ...]] = {
+    f"{DIST_DIR}/AGENTS.md": ("AGENTS.md", "CLAUDE.md", "GEMINI.md"),
+    f"{DIST_DIR}/README.md": ("README.md",),
+}
+
+# 反查：分发树里的路径 → 它应当来自哪个分发源
+DIST_TARGETS: dict[str, str] = {
+    tgt: src for src, targets in DIST_MAP.items() for tgt in targets
+}
+
 
 def is_content(path: str) -> bool:
     """给定仓库相对路径（posix 风格），判断是否属于内容层。"""
@@ -118,13 +131,41 @@ def cmd_classify(argv: list[str]) -> int:
     return 0
 
 
+def _blob(ref: str, path: str) -> str:
+    """取某个 ref 下某路径的 blob sha；不存在返回空串。"""
+    proc = subprocess.run(
+        ["git", "-c", "core.quotepath=false", "rev-parse", f"{ref}:{path}"],
+        cwd=str(ROOT), capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
+    )
+    return proc.stdout.strip() if proc.returncode == 0 else ""
+
+
 def cmd_verify_tree(argv: list[str]) -> int:
-    """断言某个 git 树/提交里不含任何内容层文件——推送闸门的最后一道复核。"""
+    """断言某个 git 树/提交里不含任何内容层文件——推送闸门的最后一道复核。
+
+    分发映射的目标路径（AGENTS.md 等）路径上属内容层，但内容应来自 `_分发/`。
+    对这些路径**校验 blob 一致性**而非放行——开发版泄漏必须被拦下。
+    """
     if not argv:
         print("用法：python scripts/layers.py verify-tree <sha>")
         return 1
     ref = argv[0]
-    leaked = [f for f in tree_files(ref) if is_content(f)]
+    files = tree_files(ref)
+
+    leaked: list[str] = []
+    for f in files:
+        if f.startswith(f"{DIST_DIR}/"):
+            leaked.append(f"{f}（分发树不应含 {DIST_DIR}/ 本身）")
+            continue
+        if not is_content(f):
+            continue
+        src = DIST_TARGETS.get(f)
+        if src is None:
+            leaked.append(f)
+            continue
+        if _blob(ref, f) != _blob("HEAD", src):
+            leaked.append(f"{f}（内容与 {src} 不一致——疑似开发版泄漏）")
     if leaked:
         print(f"[BLOCK] {ref[:12]} 的树里含 {len(leaked)} 个内容层文件，拒绝推送：")
         for f in leaked[:20]:
