@@ -60,6 +60,7 @@ CONTENT_PATTERNS: tuple[str, ...] = (
 SOURCE_EXCEPTIONS: tuple[str, ...] = (
     "00_世界观/_设计方法.md",
     "01_大纲/README.md",
+    "02_人物/README.md",
     "02_人物/人物模板.md",
     "03_正文/README.md",
     "04_伏笔/README.md",
