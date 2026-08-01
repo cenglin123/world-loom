@@ -13,11 +13,13 @@
 | 与已埋伏笔/人物记忆/主线有张力（非违宪但不自洽） | 预检 flag + 提示用户确认 |
 | 方向模糊/歧义 | 向用户提问澄清，不自行推断 |
 
-结论写入 `03_正文/第N卷/_审查_第M章.md`。一次可覆盖多章——改写卷级 `_审查_第N卷.md`，各章 frontmatter 用 `review_ref:` 指向。
+结论写入 `03_正文/第N卷/_工作/_审查_第M章.md`。一次可覆盖多章——改写卷级 `_审查_第N卷.md`，各章 frontmatter 用 `review_ref:` 指向。
+
+> 过程文件（`_准备_` / `_审查_` / `_审查后_`）统一放各卷的 `_工作/` 子目录，正文目录只留 `第M章.md`。
 
 ## ② 写前准备
 
-为每场戏整理上下文包（~300-500 字），写入 `03_正文/第N卷/_准备_第M章.md`。
+为每场戏整理上下文包（~300-500 字），写入 `03_正文/第N卷/_工作/_准备_第M章.md`。
 
 **必须做**：
 
@@ -47,7 +49,7 @@
 
 **审**：产出后 spawn 独立 reviewer，只注入上下文包 + 产出正文，**不含写作 agent 的推理过程**。按 [[docs/audit-checklist]] 小说专项审计 + [[docs/writing-style]] 可读性技法。
 
-0 阻断项且 flag ≤ 2 → 通过；不通过 → 修复 → 二审，最多 3 轮。结论写入 `_审查后_第M章.md`（schema 见 [[docs/frontmatter-schemas]]）。启动模板：[[05_复盘/reviewer-prompt-template]]。
+0 阻断项且 flag ≤ 2 → 通过；不通过 → 修复 → 二审，最多 3 轮。结论写入 `_工作/_审查后_第M章.md`（schema 见 [[docs/frontmatter-schemas]]）。启动模板：[[05_复盘/reviewer-prompt-template]]。
 
 **回写**：审稿通过后跑 `python scripts/check_maintenance.py --chapter <路径>` 拿维护待办，派维护子代理执行回写（记忆/关系/演化）。你只做派发和确定性验收——协议见 [[05_复盘/maintenance-executor]]。
 
