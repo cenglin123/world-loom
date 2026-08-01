@@ -44,7 +44,7 @@ status: draft
 
 **白名单判据**：agent 章节须有 `model`/`generated_at`；用户手写章节须显式 `author: human`。二者皆无 → pre-commit 阻断（封"沉默漏标"）。
 
-## 写后审结论（`03_正文/第N卷/_审查后_第M章.md`）
+## 写后审结论（`03_正文/第N卷/_工作/_审查后_第M章.md`）
 
 ```yaml
 ---

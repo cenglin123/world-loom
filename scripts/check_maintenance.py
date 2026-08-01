@@ -32,6 +32,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TEXT_DIR = ROOT / "03_正文"
+WORK_DIR = "_工作"          # 各卷的过程文件子目录，与 check_chapters.py 一致
 CHAR_DIR = ROOT / "02_人物"
 OUTLINE_DIR = ROOT / "01_大纲"
 REL_JSON = CHAR_DIR / "relationships.json"
@@ -147,7 +148,7 @@ def _check_memory(ch: Path, chars: list[str], staged: set[str] | None) -> list[s
 
 def _check_evolution(ch: Path, chars: list[str]) -> list[str]:
     """写前准备包里有被动场景决定 → 提醒检查演化记录。"""
-    prep = ch.parent / f"_准备_{ch.stem}.md"
+    prep = ch.parent / WORK_DIR / f"_准备_{ch.stem}.md"
     if not prep.is_file():
         return []
     body = _read(prep)

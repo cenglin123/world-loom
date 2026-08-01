@@ -18,6 +18,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CHAR_DIR = ROOT / "02_人物"
 TEXT_DIR = ROOT / "03_正文"
+# 四阶段工作流的过程文件（_准备_/_审查_/_审查后_）统一放各卷的这个子目录，
+# 与正文章节分开——正文目录只留 第M章.md。
+WORK_DIR = "_工作"
 WORLD_FILE = ROOT / "00_世界观" / "核心设定.md"
 OUTLINE_FILE = ROOT / "01_大纲" / "主线.md"
 INDEX_FILE = CHAR_DIR / "_索引.md"
@@ -218,8 +221,8 @@ def main():
         staged = result.stdout.strip().split("\n")
         chapter_files = [
             ROOT / f for f in staged
-            if f.startswith("03_正文/") and f.endswith(".md")
-            and not any(x in f for x in ("_准备_", "_审查_", "_审查后_"))
+            if f.startswith("03_正文/") and Path(f).name.startswith("第")
+            and Path(f).name.endswith("章.md")
         ]
         # 只读种子：已提交章节（不在本次暂存内），用于跨 commit 同日两地检测
         staged_set = set(chapter_files)
@@ -236,6 +239,20 @@ def main():
 
     if chapter_files:
         check_chapters(chapter_files, issues, context_files=context_files)
+
+    # 过程文件位置：_准备_/_审查_/_审查后_ 必须在 第N卷/_工作/ 下，不与正文混放
+    if TEXT_DIR.is_dir():
+        misplaced = [
+            p for p in TEXT_DIR.rglob("*.md")
+            if any(x in p.name for x in ("_准备_", "_审查_", "_审查后_"))
+            and p.parent.name != WORK_DIR
+        ]
+        for p in sorted(misplaced):
+            rel = p.relative_to(ROOT).as_posix()
+            issues.append(
+                f"[WARN] 过程文件位置不对：{rel}\n"
+                f"       应移入 {p.parent.relative_to(ROOT).as_posix()}/{WORK_DIR}/"
+            )
 
     # 输出
     blocks = [i for i in issues if "[BLOCK]" in i or "[H1-BLOCK]" in i]

@@ -84,8 +84,9 @@ if echo "$STAGED" | grep -qE "^03_正文/"; then
 fi
 
 # —— 5. 章节就绪自检 + 时空一致性（P0） ——
+# 触发条件限于真章节与过程文件——编辑 03_正文/README.md 等文档不该触发就绪自检。
 CHAPTER_STAGED=$(echo "$STAGED" | grep -E "^03_正文/.*第.*章\.md$" || true)
-if [ -n "$CHAPTER_STAGED" ] || echo "$STAGED" | grep -qE "^03_正文/"; then
+if [ -n "$CHAPTER_STAGED" ] || echo "$STAGED" | grep -qE "^03_正文/.*/_工作/"; then
     python scripts/check_chapters.py --staged || {
         echo ""
         echo "============================================"
@@ -111,9 +112,10 @@ if [ -n "$TRUE_CHAPTERS" ]; then
         if grep -qE "^author:[[:space:]]*human" "$ch"; then continue; fi
         dir=$(dirname "$ch")
         base=$(basename "$ch" .md)        # 第M章
+        work="$dir/_工作"                  # 过程文件目录，与正文分开
 
         # _准备_ 逐章、阻断级
-        prep="$dir/_准备_${base}.md"
+        prep="$work/_准备_${base}.md"
         if [ ! -f "$prep" ] && ! echo "$STAGED" | grep -qF "$prep"; then
             BLOCKERS="$BLOCKERS\n  缺 $prep （写前上下文包）"
         fi
@@ -121,18 +123,18 @@ if [ -n "$TRUE_CHAPTERS" ]; then
         # _审查_ 卷级/章级/review_ref 任一覆盖即可，提醒级
         review_ok=""
         ref=$(grep -E "^review_ref:" "$ch" | head -1 | sed -E 's/^review_ref:[[:space:]]*//' | tr -d "\"' \r")
-        if [ -n "$ref" ] && { [ -f "$dir/$ref" ] || [ -f "03_正文/$ref" ] || [ -f "$ref" ]; }; then
+        if [ -n "$ref" ] && { [ -f "$work/$ref" ] || [ -f "$dir/$ref" ] || [ -f "03_正文/$ref" ] || [ -f "$ref" ]; }; then
             review_ok=1
         fi
-        if [ -z "$review_ok" ] && { [ -f "$dir/_审查_${base}.md" ] || echo "$STAGED" | grep -qF "$dir/_审查_${base}.md"; }; then
+        if [ -z "$review_ok" ] && { [ -f "$work/_审查_${base}.md" ] || echo "$STAGED" | grep -qF "$work/_审查_${base}.md"; }; then
             review_ok=1
         fi
         if [ -z "$review_ok" ]; then
-            REMINDERS="$REMINDERS\n  缺 ${base} 的宪法审查留痕（_审查_${base}.md 或 frontmatter review_ref 指向的卷级文件）"
+            REMINDERS="$REMINDERS\n  缺 ${base} 的宪法审查留痕（_工作/_审查_${base}.md 或 frontmatter review_ref 指向的卷级文件）"
         fi
 
         # _审查后_ 写后审，提醒级
-        post="$dir/_审查后_${base}.md"
+        post="$work/_审查后_${base}.md"
         if [ ! -f "$post" ] && ! echo "$STAGED" | grep -qF "$post"; then
             REMINDERS="$REMINDERS\n  缺 $post （写后 reviewer 结论；存在仅证留痕、不证审查质量）"
         fi
