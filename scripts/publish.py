@@ -61,13 +61,13 @@ def _rev(ref: str) -> str | None:
     return proc.stdout.strip() or None
 
 
-def _apply_dist_map(env: dict) -> list[str]:
+def _apply_dist_map(env: dict) -> dict[str, str]:
     """把 `_分发/` 下的使用层文档映射到目标路径，再从树里移除 `_分发/` 本身。
 
     同一个 blob 映射多个文件名——单一源，天然同步，不存在漂移。
-    返回映射产生的目标路径清单（供清单打印时说明来源）。
+    返回 {目标路径: 来源路径}，供清单打印时说明每个文件从哪来。
     """
-    mapped: list[str] = []
+    mapped: dict[str, str] = {}
     for src, targets in DIST_MAP.items():
         sha = _git("rev-parse", f"HEAD:{src}", check=False).strip()
         if not sha:
@@ -77,13 +77,13 @@ def _apply_dist_map(env: dict) -> list[str]:
         for tgt in targets:
             _git("update-index", "--add", "--cacheinfo", f"100644,{sha},{tgt}",
                  env=env)
-            mapped.append(tgt)
+            mapped[tgt] = src
     _git("rm", "--cached", "-r", "--quiet", "--ignore-unmatch", DIST_DIR, env=env)
     return mapped
 
 
-def build_dist_tree() -> tuple[str, list[str], list[str], list[str]]:
-    """返回 (tree_sha, 公开文件清单, 被排除的内容层清单, 映射产生的路径)。"""
+def build_dist_tree() -> tuple[str, list[str], list[str], dict[str, str]]:
+    """返回 (tree_sha, 公开文件清单, 被排除的内容层清单, {目标: 来源})。"""
     env = {"GIT_INDEX_FILE": PUBLISH_INDEX}
     _git("read-tree", "HEAD", env=env)
 
@@ -124,8 +124,7 @@ def main() -> int:
 
     # —— 硬复核 1：树里绝不能有内容层/开发层文件 ——
     # 映射产生的路径豁免：它们的内容来自 _分发/（源码层），只是借用了内容层的路径名。
-    mapped_set = set(mapped)
-    leaked = [f for f in published if is_content(f) and f not in mapped_set]
+    leaked = [f for f in published if is_content(f) and f not in mapped]
     if leaked:
         print(f"[BLOCK] 分发树里仍有 {len(leaked)} 个内容层文件，已中止：")
         for f in leaked:
@@ -143,7 +142,7 @@ def main() -> int:
 
     print(f"将公开 {len(published)} 个源码层文件：")
     for f in published:
-        tag = f"   ← 由 {DIST_DIR}/AGENTS.md 映射" if f in mapped_set else ""
+        tag = f"   ← 由 {mapped[f]} 映射" if f in mapped else ""
         print(f"  + {f}{tag}")
     print(f"\n已排除 {len(excluded)} 个内容层/开发层文件（正文/角色/世界观填写/"
           f"开发规范等，一个都不会出去）")
