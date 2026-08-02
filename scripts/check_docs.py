@@ -25,15 +25,23 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# 归档/入口类文档——天然没有反向链接，不算孤儿
+# 孤儿检查只管**文档**——位置由导航链接决定的东西。
+# **制品**（正文、人物卡、过程文件）的位置由命名约定和专门的登记表决定，
+# 且各有专门检查器；在这里重复检查只会给出错误的修复指引
+# （"接进导航或删掉" vs 正确的 "跑 check_tags.py _index"）。
 EXEMPT_PATTERNS: tuple[str, ...] = (
-    "docs/plans/completed/",     # 已完成计划，本职即归档
-    "docs/plans/deferred/",      # 由 docs/plans/README.md 索引（该索引本身受孤儿检查保护）
+    # —— 归档：本职即写完存档，无人引用是常态 ——
+    "docs/plans/completed/",     # 已完成计划
+    "docs/plans/deferred/",      # 由 docs/plans/README.md 索引（索引本身受检）
     "05_复盘/20",                 # converge 过程记录，日期开头
     "05_复盘/第",                 # 卷复盘
-    "_模板/",                     # 骨架镜像，由 _模板/README.md 统一登记
-    "_分发/",                     # 分发源，由 publish.py DIST_MAP 引用
+    # —— 镜像：由各自的机制统一登记 ——
+    "_模板/",                     # 骨架，由 _模板/README.md 登记
+    "_分发/",                     # 分发源，由 publish.py 的 DIST_MAP 引用
     "example_world/",            # 教学演示
+    # —— 制品：位置由约定承载，登记完整性另有检查器 ——
+    "03_正文/",                   # 章节 → check_maintenance.py 场景清单比对
+                                 # 过程文件 → pre-commit 工作流留痕检查
 )
 
 # 会话入口——agent/用户直接打开，不需要被别处链接
@@ -65,8 +73,25 @@ def _tracked_md() -> list[str]:
     return [f for f in _git("ls-files").splitlines() if f.endswith(".md")]
 
 
+# 人物卡：由 02_人物/_索引.md 登记，check_tags.py 负责完整性
+_CHAR_DOCS = {"README.md", "_索引.md", "人物模板.md"}
+
+
 def _exempt(rel: str) -> bool:
-    return rel in ENTRY_DOCS or any(rel.startswith(p) for p in EXEMPT_PATTERNS)
+    if rel in ENTRY_DOCS or any(rel.startswith(p) for p in EXEMPT_PATTERNS):
+        return True
+    # 02_人物/<角色名>.md 是制品，不是文档
+    p = Path(rel)
+    return str(p.parent) == "02_人物" and p.name not in _CHAR_DOCS
+
+
+def _strip_code_blocks(text: str) -> str:
+    """去掉围栏代码块——目录示例树里的文件名不算真引用。
+
+    `03_正文/README.md` 的示例树里写着「第1章.md」，若算作引用，
+    第 1、2 章会侥幸通过而第 3 章报错——这种偶然豁免比不检查更坏。
+    """
+    return re.sub(r"```.*?```", "", text, flags=re.DOTALL)
 
 
 def _all_text_except(skip: str) -> str:
@@ -79,9 +104,10 @@ def _all_text_except(skip: str) -> str:
             continue
         p = ROOT / f
         try:
-            buf.append(p.read_text(encoding="utf-8"))
+            raw = p.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
+        buf.append(_strip_code_blocks(raw) if f.endswith(".md") else raw)
     return "\n".join(buf)
 
 
