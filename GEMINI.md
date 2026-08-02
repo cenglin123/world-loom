@@ -36,7 +36,7 @@
 
 | 需要什么 | 去哪找 |
 |---------|--------|
-| 用户侧提示词 | [[使用手册]] |
+| 用户侧提示词 · 小说简介 | [[使用手册]] · [[简介]] |
 | 四阶段工作流细则 | [[docs/workflow]] |
 | 叙述约定：锁定层（视角/时态/文风）· 工艺层（技法/法则） | [[docs/style-locked]] · [[docs/writing-style]] |
 | 字段定义 · 写作陷阱 · 审计清单 · 项目总览 | [[docs/frontmatter-schemas]] · [[docs/pitfalls]] · [[docs/audit-checklist]] · [[docs/overview]] |
@@ -45,9 +45,8 @@
 | 世界观构建方法 | [[00_世界观/_设计方法]] |
 | 大纲（七种推导模式 + 展开阶梯） | [[01_大纲/README]] → [[01_大纲/主线]] |
 | 人物（生成模型 + 创建流程 + 记忆关系） | [[02_人物/README]] → [[02_人物/人物模板]] |
-| 正文 · 伏笔 | [[03_正文/README]] · [[04_伏笔/README]] |
+| 正文 · 伏笔 · 空白骨架 | [[03_正文/README]] · [[04_伏笔/README]] · [[_模板/README]] |
 | converge 协议 · reviewer 模板 · 维护子代理 | [[05_复盘/reviewer-protocol]] · [[05_复盘/reviewer-prompt-template]] · [[05_复盘/maintenance-executor]] |
-| 空白骨架与重置 | [[_模板/README]] |
 
 ## 行为规则
 
@@ -87,7 +86,7 @@
 
 ## 提交规范
 
-Conventional Commit（`feat:` / `fix:` / `chore:`）。完成一卷或关键场景后主动提交。
+Conventional Commit（`feat:`/`fix:`/`chore:`）。完成一卷或关键场景后主动提交。
 
 ## 文档维护原则
 
