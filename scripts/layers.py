@@ -44,6 +44,7 @@ CONTENT_PATTERNS: tuple[str, ...] = (
     "docs/plans/completed/**/*",
     "docs/plans/deferred/*",
     "docs/plans/deferred/**/*",
+    "简介.md",
     "docs/overview.md",
     "docs/CURRENT.md",
     "docs/CHANGELOG.md",
