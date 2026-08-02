@@ -56,6 +56,11 @@ CHECKS: list[tuple[str, list[str], str]] = [
         "按提示修正 frontmatter（model/author: human/characters_present 等）或补 _准备_ 文件",
     ),
     (
+        "文档",
+        ["scripts/check_docs.py"],
+        "孤儿文档：接进导航或删除；占位符滞留：设定落后于正文，确认是否有意",
+    ),
+    (
         "编码",
         ["scripts/check_encoding.py"],
         "补 encoding=\"utf-8\"——中文 Windows 的 GBK 区域会让 UTF-8 中文路径解码崩溃",

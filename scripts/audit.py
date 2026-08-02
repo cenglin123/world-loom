@@ -1,8 +1,8 @@
 """audit.py — 文档一致性机械检查 (token-light, read-only).
 
 Checks that init-agent-docs initialized files have not rotted:
-dead links, STRUCTURE index completeness, tech-stack drift between docs
-and manifests, birth-record presence, AGENTS.md line budget, sync health.
+dead links, STRUCTURE index completeness, birth-record presence,
+AGENTS.md line budget, sync health.
 
 All subcommands are read-only — this tool never modifies files.
 """
@@ -69,38 +69,6 @@ MANIFEST_GLOBS = [
     "build.gradle.kts",
 ]
 
-# DRIFT_PATTERNS is a fixed heuristic, not a complete taxonomy. This is exactly the
-# kind of 硬编码先验 that philosophy #8 warns against — but as a pragmatic starting
-# seed it catches common drift without the complexity of a dynamic resolver. Projects
-# should extend or replace these patterns for their specific stack. The --json output
-# leaves interpretation to the agent, not the dictionary.
-DRIFT_PATTERNS: dict[str, list[str]] = {
-    "SQLite":            ["sqlite", "aiosqlite", "better-sqlite3", "sql.js"],
-    "PostgreSQL":        ["postgres", "postgresql", "psycopg2", "psycopg", "pg", "pg-promise"],
-    "MySQL":             ["mysql", "mariadb", "pymysql", "mysql2"],
-    "MongoDB":           ["mongo", "mongodb", "mongoose", "pymongo"],
-    "Redis":             ["redis", "ioredis", "aioredis"],
-    "RabbitMQ":          ["rabbitmq", "amqp", "pika"],
-    "Kafka":             ["kafka", "kafkajs", "confluent-kafka"],
-    "Docker":            ["docker", "docker-compose", "dockerfile"],
-    "Kubernetes":        ["kubernetes", "k8s", "kubectl", "helm"],
-    "Elasticsearch":     ["elasticsearch", "elastic"],
-    "GraphQL":           ["graphql", "apollo", "gql", "relay"],
-    "gRPC":              ["grpc", "protobuf", "proto"],
-    "WebSocket":         ["websocket", "ws", "socket.io", "sockjs"],
-    "Celery":            ["celery"],
-    "RQ":                ["rq", "django-rq"],
-    "Nginx":             ["nginx"],
-    "Caddy":             ["caddy"],
-    "S3":                ["s3", "boto3", "minio", "aws-sdk"],
-    "JWT":               ["jwt", "pyjwt", "jsonwebtoken", "jose"],
-    "OAuth":             ["oauth", "oauth2", "oidc", "openid"],
-    "Sentry":            ["sentry"],
-    "Prometheus":        ["prometheus", "prom-client"],
-    "Grafana":           ["grafana"],
-    "Terraform":         ["terraform", "opentofu"],
-}
-
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -129,15 +97,6 @@ def _resolve(target: str, source_dir: Path) -> Path:
     if target.startswith("/"):
         return (ROOT / target.lstrip("/")).resolve()
     return (source_dir / target).resolve()
-
-
-def _find_manifests() -> list[Path]:
-    found: list[Path] = []
-    for g in MANIFEST_GLOBS:
-        found.extend(ROOT.glob(g))
-    return sorted(set(found))
-
-
 # ---------------------------------------------------------------------------
 # link extraction
 # ---------------------------------------------------------------------------
@@ -258,68 +217,6 @@ def _check_structure() -> list[dict[str, Any]]:
                 "source": "docs/STRUCTURE.md",
                 "line": 0,
                 "target": rel,
-            })
-
-    return results
-
-
-# ---------------------------------------------------------------------------
-# drift
-# ---------------------------------------------------------------------------
-
-def _drift_check() -> list[dict[str, Any]]:
-    results: list[dict[str, Any]] = []
-
-    manifests = _find_manifests()
-    if not manifests:
-        return results
-
-    manifest_text = ""
-    for m in manifests:
-        try:
-            manifest_text += " " + _read(m).lower()
-        except Exception:
-            continue
-
-    doc_text = ""
-    for doc_rel in ["docs/overview.md", "docs/deployment.md"]:
-        p = ROOT / doc_rel
-        if p.is_file():
-            doc_text += " " + _read(p).lower()
-
-    # Doc mentions → check manifest.
-    for tech, keywords in DRIFT_PATTERNS.items():
-        in_docs = tech.lower() in doc_text or any(kw in doc_text for kw in keywords)
-        if not in_docs:
-            continue
-        in_manifest = any(kw in manifest_text for kw in keywords)
-        if not in_manifest:
-            results.append({
-                "kind": "drift",
-                "status": "drift",
-                "tech": tech,
-                "detail": f'Docs mention "{tech}" but no matching dependency found in manifests',
-            })
-        else:
-            results.append({
-                "kind": "drift",
-                "status": "ok",
-                "tech": tech,
-                "detail": f'"{tech}" found in both docs and manifests',
-            })
-
-    # Manifest has → doc silent.
-    for tech, keywords in DRIFT_PATTERNS.items():
-        in_manifest = any(kw in manifest_text for kw in keywords)
-        if not in_manifest:
-            continue
-        in_docs = tech.lower() in doc_text or any(kw in doc_text for kw in keywords)
-        if not in_docs:
-            results.append({
-                "kind": "drift",
-                "status": "undocumented",
-                "tech": tech,
-                "detail": f'Manifest has "{keywords[0]}" but docs never mention "{tech}"',
             })
 
     return results
@@ -480,7 +377,6 @@ def _run_all() -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     results.extend(_check_dead_links())
     results.extend(_check_structure())
-    results.extend(_drift_check())
     results.extend(_check_birth_record())
     results.extend(_check_line_budget())
     results.extend(_check_sync())
@@ -497,7 +393,6 @@ _STATUS_GLYPHS: dict[str, str] = {
     "dead":        "DEAD",
     "missing":     "MISS",
     "orphan":      "ORPHAN",
-    "drift":       "DRIFT",
     "undocumented":"UNDOC",
     "warn":        "WARN",
     "found":       "FOUND",
@@ -530,8 +425,6 @@ def _format_text(results: list[dict[str, Any]], verbose: bool = False) -> str:
                 lines_out.append(
                     f"[{glyph:<6}] docs/STRUCTURE.md:{r['line']} -> {r['target']} (file missing)"
                 )
-        elif kind == "drift":
-            lines_out.append(f"[{glyph:<6}] {r['detail']}")
         elif kind == "birth_record":
             if r["status"] == "missing":
                 lines_out.append(f"[{glyph:<6}] Birth record missing: {r['path']}")
@@ -604,18 +497,6 @@ def _cmd_structure(args: argparse.Namespace) -> None:
         print(_format_text(results, verbose=args.verbose))
     if any(r["status"] != "ok" for r in results):
         raise SystemExit(1)
-
-
-def _cmd_drift(args: argparse.Namespace) -> None:
-    results = _drift_check()
-    if args.json:
-        print(json.dumps(results, ensure_ascii=False, indent=2))
-    else:
-        print(_format_text(results, verbose=args.verbose))
-    if any(r["status"] not in ("ok",) for r in results):
-        raise SystemExit(1)
-
-
 def _cmd_memory(args: argparse.Namespace) -> None:
     results = _check_memory()
     if args.json:
@@ -650,11 +531,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_struct.add_argument("--json", action="store_true", help="Output JSON")
     p_struct.add_argument("--verbose", action="store_true", help="Show OK entries")
     p_struct.set_defaults(func=_cmd_structure)
-
-    p_drift = sub.add_parser("drift", help="Dependency drift check only")
-    p_drift.add_argument("--json", action="store_true", help="Output JSON")
-    p_drift.add_argument("--verbose", action="store_true", help="Show OK entries")
-    p_drift.set_defaults(func=_cmd_drift)
 
     p_mem = sub.add_parser("memory", help="Memory structure check only")
     p_mem.add_argument("--json", action="store_true", help="Output JSON")

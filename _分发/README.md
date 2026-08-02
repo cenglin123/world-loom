@@ -39,7 +39,8 @@
 │   ├── writing-style.md                 # 叙述约定 + 可读性技法 + 故事驱动法则
 │   ├── audit-checklist.md               # 一致性审计清单
 │   ├── frontmatter-schemas.md           # 字段定义（唯一权威源）
-│   └── pitfalls.md                      # AI 写作已知陷阱
+│   ├── pitfalls.md                      # AI 写作已知陷阱
+│   └── decisions.md                     # 设计决策记录（为什么选 X 不选 Y）
 ├── example_world/                        # 填好之后长什么样的演示实例
 ├── scripts/                              # CLI 工具链
 └── .githooks/                            # 提交前自动校验

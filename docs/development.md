@@ -8,7 +8,7 @@
 | 层 | 判据 | 例子 |
 |----|------|------|
 | **源码层** | 下游用户需要的工具与方法 | `_模板/` `_分发/` `scripts/` `.githooks/` `使用手册.md` `docs/writing-style.md` |
-| **内容层** | 这本书的创作产物 | 世界观填写、大纲、角色卡、正文、伏笔、卷复盘、`docs/{overview,CURRENT,style-locked,CHANGELOG,plans}` |
+| **内容层** | 这本书的创作产物 | 世界观填写、大纲、角色卡、正文、伏笔、卷复盘、`docs/{decisions,CURRENT,style-locked,CHANGELOG,plans}` |
 | **开发层** | 造这套工具的过程 | `AGENTS.md` `README.md` `docs/development.md` converge 治理记录 |
 
 内容层与开发层在机制上等同——`layers.py` 的 `is_content()` 对两者都返回 True，都不分发。区分只在语义，方便判断"这东西该往哪写"。
@@ -95,7 +95,7 @@ subprocess 读取线程 UnicodeDecodeError → stdout 变 None → 调用方 Att
 
 ## 检查器清单
 
-`scripts/check_all.py` 的 `CHECKS` 是权威源，新增机械检查只改那一处。当前八项：同步 / 模板 / 死链 / 伏笔 / 关系 / 标签 / 章节 / 维护。
+`scripts/check_all.py` 的 `CHECKS` 是权威源，新增机械检查只改那一处。当前十项：同步 / 模板 / 死链 / 伏笔 / 关系 / 标签 / 章节 / 文档 / 编码 / 维护。
 
 hook 只扫暂存区，`check_all.py` 扫全量工作区——互补，不重复。
 

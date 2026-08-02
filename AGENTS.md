@@ -14,7 +14,7 @@ world-loom 小说创作辅助系统的**开发仓**。产出物是一套分发�
 | 层 | 是什么 | 分发 | 权威源 |
 |----|--------|------|--------|
 | **源码层** | `_模板/` + `_分发/` + `.githooks/` + `scripts/` + 使用层方法文档 + `example_world/` | ✓ 推公开仓 | — |
-| **内容层** | 世界观填写、大纲、角色卡、正文、伏笔、卷复盘、`docs/{overview,CURRENT,style-locked,CHANGELOG,plans}` | ✗ 只留本地 | — |
+| **内容层** | 世界观填写、大纲、角色卡、正文、伏笔、卷复盘、`docs/{decisions,CURRENT,style-locked,CHANGELOG,plans}` | ✗ 只留本地 | — |
 | **开发层** | 本文件、`docs/development.md`、converge 治理记录 | ✗ 只留本地 | — |
 
 划分清单唯一权威源：`scripts/layers.py`。开发层在机制上等同内容层（都不分发），区分只在语义——内容层是"这本书的创作产物"，开发层是"造这套工具的过程"。
