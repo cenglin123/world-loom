@@ -216,7 +216,10 @@ def main():
         import subprocess
         result = subprocess.run(
             ["git", "-c", "core.quotepath=false", "diff", "--cached", "--name-only"],
-            capture_output=True, text=True, cwd=str(ROOT)
+            capture_output=True, text=True, cwd=str(ROOT),
+            # git 输出 UTF-8 中文路径；不显式指定则按系统区域解码
+            # （中文 Windows = GBK）→ UnicodeDecodeError，hook 里表现为脚本崩溃
+            encoding="utf-8", errors="replace",
         )
         staged = result.stdout.strip().split("\n")
         chapter_files = [

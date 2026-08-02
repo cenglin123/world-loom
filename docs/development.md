@@ -74,6 +74,25 @@ python scripts/publish.py --force    # 真推
 
 反例：给文风做正则黑名单。它违反第 2 条（收窄表达空间）且误报高。按 Bitter Lesson，语义一致性交 LLM + converge，不硬编词表。
 
+## 中文 Windows 的编码陷阱
+
+写任何调用外部命令或读写文件的脚本时，**必须显式指定 UTF-8**：
+
+```python
+subprocess.run(..., text=True, encoding="utf-8", errors="replace")
+path.read_text(encoding="utf-8")
+```
+
+不指定就按**系统区域**解码。中文 Windows 的区域是 GBK，而 git 输出的路径、仓库里的文档全是 UTF-8——内容一含中文就炸：
+
+```
+subprocess 读取线程 UnicodeDecodeError → stdout 变 None → 调用方 AttributeError
+```
+
+这类崩溃的隐蔽之处在于：只有路径含中文时才触发，而本仓的目录名（`03_正文/第1卷/`）天然全是中文，所以一定会踩到；但如果本机区域是 UTF-8，自测又发现不了——只在别人机器上崩。
+
+`scripts/check_encoding.py` 静态扫描这两类调用，接在 `check_all.py` 与 pre-commit 上，改脚本时自动拦。
+
 ## 检查器清单
 
 `scripts/check_all.py` 的 `CHECKS` 是权威源，新增机械检查只改那一处。当前八项：同步 / 模板 / 死链 / 伏笔 / 关系 / 标签 / 章节 / 维护。

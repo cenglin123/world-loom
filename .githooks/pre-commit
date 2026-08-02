@@ -6,12 +6,14 @@ set -e
 # 复盘）同库同分支、都入库，因此下面各项对两层一视同仁。
 # 两层的区别只在能不能对外分发，那由 .githooks/pre-push 把关。
 #
-# 任务: (0) 模板层完整性 (1) AGENTS.md 同步 (2) 伏笔表格式 (3) 关系/标签
-#       (4) 人物卡提醒 (5) 章节校验 (6) 工作流痕迹
+# 任务: (0) 模板层完整性 (0b) 脚本编码 (1) AGENTS.md 同步 (2) 伏笔表格式
+#       (3) 关系/标签 (4) 维护待办 (5) 章节校验 (6) 工作流痕迹
+
+STAGED=$(git -c core.quotepath=false diff --cached --name-only)
 
 # —— 0. 模板层完整性 ——
 # _模板/ 是源码；每个可填写文件都必须有模板骨架，否则新克隆 init 不出完整结构。
-if git -c core.quotepath=false diff --cached --name-only | grep -qE "^(_模板/|scripts/layers\.py)"; then
+if echo "$STAGED" | grep -qE "^(_模板/|scripts/layers\.py)"; then
     python scripts/template.py check >/dev/null || {
         echo ""
         echo "============================================"
@@ -21,6 +23,20 @@ if git -c core.quotepath=false diff --cached --name-only | grep -qE "^(_模板/|
         exit 1
     }
     echo "[pre-commit] template layer ok"
+fi
+
+# —— 0b. 脚本编码显式性 ——
+# 中文 Windows 的 GBK 区域下，未指定 encoding 的 subprocess/open 会解码崩溃。
+if echo "$STAGED" | grep -qE "^scripts/.*\.py$"; then
+    python scripts/check_encoding.py || {
+        echo ""
+        echo "============================================"
+        echo "脚本存在未显式指定编码的调用，中文路径下会崩溃。"
+        echo "  python scripts/check_encoding.py   # 查看详情"
+        echo "============================================"
+        exit 1
+    }
+    echo "[pre-commit] script encoding ok"
 fi
 
 # —— 1. AGENTS.md / CLAUDE.md / GEMINI.md 同步 ——
@@ -35,7 +51,6 @@ python scripts/agent_links.py check || {
 }
 
 # —— 2. 伏笔登记表格式完整性 ——
-STAGED=$(git -c core.quotepath=false diff --cached --name-only)
 if echo "$STAGED" | grep -qF "04_伏笔/伏笔登记表.md"; then
     python scripts/check_foreshadowing.py || {
         echo ""

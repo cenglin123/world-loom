@@ -380,6 +380,8 @@ def _check_sync() -> list[dict[str, Any]]:
             cwd=ROOT,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
     except (subprocess.TimeoutExpired, OSError) as exc:

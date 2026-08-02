@@ -56,6 +56,11 @@ CHECKS: list[tuple[str, list[str], str]] = [
         "按提示修正 frontmatter（model/author: human/characters_present 等）或补 _准备_ 文件",
     ),
     (
+        "编码",
+        ["scripts/check_encoding.py"],
+        "补 encoding=\"utf-8\"——中文 Windows 的 GBK 区域会让 UTF-8 中文路径解码崩溃",
+    ),
+    (
         "维护",
         ["scripts/check_maintenance.py"],
         "派发维护子代理回写记忆/关系/演化（模板见 05_复盘/maintenance-executor.md）"

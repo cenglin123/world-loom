@@ -49,6 +49,7 @@ def _rev(ref: str) -> str | None:
     proc = subprocess.run(
         ["git", "rev-parse", "--verify", "--quiet", ref],
         cwd=str(ROOT), capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
     )
     return proc.stdout.strip() or None
 
