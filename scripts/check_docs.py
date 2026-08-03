@@ -8,6 +8,8 @@
    只是慢慢过期，然后误导下一个读到它的人。
 2. **占位符滞留**：正文都写了几章，`简介.md` / `核心设定.md` 还停在"待填写"。
    说明创作跑在了设定前面——不一定错，但必须是知情的。
+3. **文风吸纳半走完**：`06_文风样本/` 已入库，`docs/style-locked.md`「文风模仿」段
+   却没有登记条目——样本还在、规格没落，换会话后这条线就断了。
 
 归档目录（completed/ 的计划、converge 过程记录）天然无人引用，白名单豁免。
 
@@ -42,6 +44,7 @@ EXEMPT_PATTERNS: tuple[str, ...] = (
     # —— 制品：位置由约定承载，登记完整性另有检查器 ——
     "03_正文/",                   # 章节 → check_maintenance.py 场景清单比对
                                  # 过程文件 → pre-commit 工作流留痕检查
+    "06_文风样本/",               # 样本原文 → 本文件 check_style_absorption
 )
 
 # 会话入口——agent/用户直接打开，不需要被别处链接
@@ -162,6 +165,33 @@ def check_placeholders() -> list[str]:
     return issues
 
 
+def check_style_absorption() -> list[str]:
+    """文风吸纳未走完：样本已入库，但 style-locked「文风模仿」段无登记条目。
+
+    契约层检查——结构性缺失 fail-closed；总结得对不对不在此判断。
+    骨架自带的「示例」条目不算登记；目录里的 README 不算样本。
+    """
+    sample_dir = ROOT / "06_文风样本"
+    if not sample_dir.is_dir():
+        return []
+    if not any(p.is_file() and p.name != "README.md" for p in sample_dir.rglob("*")):
+        return []
+    style = ROOT / "docs" / "style-locked.md"
+    if not style.is_file():
+        return []
+    try:
+        text = style.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    m = re.search(r"^## 文风模仿\s*$(.*?)(?=^## |\Z)", text, flags=re.M | re.DOTALL)
+    if m and re.search(r"^### (?!.*示例)", m.group(1), flags=re.M):
+        return []
+    return [
+        "文风吸纳未走完：06_文风样本/ 已有样本，但 docs/style-locked.md「文风模仿」段无登记条目\n"
+        "    按 06_文风样本/README.md 的流程完成登记（### <名称> 一节），或移走样本"
+    ]
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="文档体系检查")
     ap.add_argument("--orphans", action="store_true", help="只查孤儿文档")
@@ -170,6 +200,7 @@ def main(argv: list[str]) -> int:
     issues = check_orphans()
     if not args.orphans:
         issues += check_placeholders()
+        issues += check_style_absorption()
 
     if issues:
         print(f"[FAIL] 文档体系 {len(issues)} 项：")

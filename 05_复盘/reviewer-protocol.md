@@ -18,7 +18,8 @@
 4. 所有涉及角色的 `02_人物/<角色名>.md`
 5. `04_伏笔/伏笔登记表.md`
 6. 本卷每场的上下文包（`03_正文/第N卷/_工作/_准备_*.md`）——用于判读达成断言是否兑现
-7. `docs/style-locked.md`（视角/时态/文风注册表，漂移基线）+ `docs/writing-style.md`（技法 rubric）+ `docs/audit-checklist.md`（小说专项审计项）
+7. `docs/style-locked.md`（视角/时态/文风模仿/文风注册表，漂移基线）+ `docs/writing-style.md`（技法 rubric）+ `docs/audit-checklist.md`（小说专项审计项）
+8. 若 `docs/style-locked.md`「文风模仿」登记了模仿对象：对应 `06_文风样本/<名称>/` 的样本原文——调性漂移的对照基线
 
 ## 阻断分类
 

@@ -38,6 +38,8 @@ CONTENT_PATTERNS: tuple[str, ...] = (
     "04_伏笔/**/*",
     "05_复盘/*",
     "05_复盘/**/*",
+    "06_文风样本/*",
+    "06_文风样本/**/*",
     "docs/plans/active/*",
     "docs/plans/active/**/*",
     "docs/plans/completed/*",

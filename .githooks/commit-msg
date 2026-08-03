@@ -24,6 +24,8 @@ GOVERNANCE_FILES=(
     "05_复盘/reviewer-protocol.md"
     "05_复盘/reviewer-prompt-template.md"
     "05_复盘/maintenance-executor.md"
+    "06_文风样本/README.md"
+    "_模板/06_文风样本/README.md"
     "scripts/check_maintenance.py"
     "_模板/05_复盘/maintenance-executor.md"
     "_模板/00_世界观/核心设定.md"

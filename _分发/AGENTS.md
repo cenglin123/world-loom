@@ -39,6 +39,7 @@
 | 用户侧提示词·小说简介 | [[使用手册]]·[[简介]] |
 | 四阶段工作流细则 | [[docs/workflow]] |
 | 叙述约定：锁定层（视角/时态/文风）· 工艺层（技法/法则） | [[docs/style-locked]]·[[docs/writing-style]] |
+| 文风模仿（用户给样本"照这个写"） | [[06_文风样本/README]] → [[docs/style-locked]]「文风模仿」 |
 | 字段定义·写作陷阱·审计清单·设计决策 | [[docs/frontmatter-schemas]]·[[docs/pitfalls]]·[[docs/audit-checklist]]·[[docs/decisions]] |
 | 当前状态·变更·计划 | [[docs/CURRENT]]·[[docs/CHANGELOG]]·[[docs/plans/active/]] |
 | 世界观（核心 locked + 外围可扩展） | [[00_世界观/核心设定]]·[[00_世界观/外围设定]] |

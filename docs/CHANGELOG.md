@@ -2,6 +2,20 @@
 
 > 倒序排列，最新在前。操作：python scripts/changelog.py titles/show/add/recent
 
+## 2026-08-04
+
+### 文风吸纳纪律（使用层）
+
+#### 变更内容
+- 新增 06_文风样本/（内容层，layers.py 划定）：样本长期保留，规格登记 docs/style-locked.md「文风模仿」段，登记/更换/删除均为改锁（[governance] + 用户确认）
+- style-locked.md 双份（根 + _模板/）加「文风模仿」段：样本/适用范围/规格/禁用信号四项，允许多套并存，不规定总结维度；模板含虚构示例条目（评书式）
+- _模板/06_文风样本/README.md：吸纳流程 + 留存规则（与 _方法 素材过路相反）
+- _分发/AGENTS.md 导航加指针；reviewer-protocol 审理素材第 8 项注入样本；audit-checklist 加调性一致性复核项
+- check_docs.py 新增契约检查：样本已入库但规格未登记 → FAIL
+- dogfood 走查：以用户提供的 4 篇真实样本验证流程全链路（含契约检查正反向、publish 零泄漏），测试材料已弃置不入库
+
+---
+
 ## 2026-07-29
 
 ### 重构人物生成模型与写前决策链
