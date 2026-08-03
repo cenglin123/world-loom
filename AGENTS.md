@@ -13,6 +13,8 @@
 
 新克隆 / 内容缺失 → `template.py init`（不覆盖已有文件）；开新书 → `template.py reset --all --force`（旧内容仍在 git 历史里）。
 
+**开始工作前** → `git fetch` 看远端有无更新，有则先 `git pull` 再动笔（`check_all.py` 每次运行末尾也会提醒；是否更新由你判断）。
+
 ## 就绪自检（接到"推进剧情"任务前强制执行）
 
 四项任一不满足 → **拒绝推进正文，引导用户先完成设定**：
@@ -66,6 +68,8 @@
 - **关系同步** `[提醒]`：有意义互动后 `relationship.py set/update`，卷末 `regenerate`
 - **标签同步** `[提醒]`：角色创建或能力变化后更新 tags，卷末 `check_tags.py regenerate`
 - **受保护文档** `[阻断]`：世界观硬设定、`docs/style-locked.md` 等的改动须带 `[governance]`。清单见 `.githooks/commit-msg`
+- **体检** `[你负责]`：用户说「体检一下」→ 跑 `check_all.py` 并逐项汇报
+- **观察者姿态** `[你负责]`：用户只旁观时，只推演/输出观点，不擅自动笔写正文
 
 ### 默认偏好
 

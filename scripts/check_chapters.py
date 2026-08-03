@@ -5,7 +5,8 @@
   - characters_present 引用的角色都在 02_人物/ 下有文件
   - status=dead 的角色不出现在 characters_present 中
   - 同一 in_world_date 下角色不出现于两个不同 location
-  - 就绪自检：世界观/大纲/人物非空才能提交正文
+  - 日期文字结构相同且可解析时，章节顺序与日期顺序不得倒流（不可解析 → 跳过，fail-open）
+  - 就绪自检：世界观/大纲主线一句话/人物/叙述约定非空才能提交正文
 用法: python scripts/check_chapters.py [--staged] [--readiness]
 """
 
@@ -71,6 +72,62 @@ def _parse_characters_present(raw: str | list | None) -> list[str]:
 
 # ── checks ────────────────────────────────────────────────
 
+_CN_DIGIT = {"零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
+             "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+_NUM_TOKEN_RE = re.compile(r"初?[零〇一二两三四五六七八九十百千万廿卅]+|\d+")
+
+
+def _cn_to_int(s: str) -> int | None:
+    """中文数字（含 初/十/廿/卅/百/千 前缀）→ int；不可解析返回 None。"""
+    if s.isdigit():
+        return int(s)
+    s = s.lstrip("初")
+    section = 0
+    for unit, mul in (("千", 1000), ("百", 100), ("十", 10)):
+        if unit in s:
+            left, _, s = s.partition(unit)
+            section += (_CN_DIGIT.get(left[-1], 1) if left else 1) * mul
+    if s.startswith("廿"):
+        section, s = section + 20, s[1:]
+    elif s.startswith("卅"):
+        section, s = section + 30, s[1:]
+    if s:
+        d = _CN_DIGIT.get(s)
+        if d is None:
+            return None
+        section += d
+    return section
+
+
+def _date_parts(s: str) -> tuple[tuple[str, ...], tuple[int, ...]] | None:
+    """日期串 → (文字骨架, 数值序列)。含不可解析数字或无数字 → None。
+
+    两个日期只在**文字骨架完全相同**时可比（同日历、同纪元）；
+    骨架不同（改元/换历法/换纪月名）→ 不比较，fail-open。
+    """
+    lits, nums, pos = [], [], 0
+    for m in _NUM_TOKEN_RE.finditer(s):
+        lits.append(s[pos:m.start()])
+        v = _cn_to_int(m.group())
+        if v is None:
+            return None
+        nums.append(v)
+        pos = m.end()
+    lits.append(s[pos:])
+    if not nums:
+        return None
+    return tuple(lits), tuple(nums)
+
+
+def _section_has_content(text: str, heading: str) -> bool:
+    """指定 `## <heading>` 小节去掉占位符后是否有实质内容。"""
+    m = re.search(rf"^## {re.escape(heading)}\s*$(.*?)(?=^## |\Z)",
+                  text, flags=re.M | re.DOTALL)
+    if not m:
+        return False
+    cleaned = re.sub(r'[（(]待[填写选择][^）)]*[）)]', '', m.group(1)).strip()
+    return bool(cleaned)
+
 def _body_has_content(path: Path) -> bool:
     """检查 markdown 文件去掉 frontmatter 后是否有实质内容（非仅占位符）。"""
     if not path.exists():
@@ -95,10 +152,14 @@ def check_readiness(issues: list):
     else:
         issues.append("[H1-BLOCK] 世界观/核心设定.md 不存在")
 
-    # 检查大纲主线（不依赖具体标题名）
+    # 检查大纲主线（整文件有实质内容，且「主线（一句话）」小节单独填好——
+    # 只填了分卷规划等其它小节不算就绪）
     if OUTLINE_FILE.exists():
         if not _body_has_content(OUTLINE_FILE):
             issues.append("[H1-BLOCK] 大纲/主线.md 主线一句话仍为'待填写'")
+        elif not _section_has_content(
+                OUTLINE_FILE.read_text(encoding="utf-8"), "主线（一句话）"):
+            issues.append("[H1-BLOCK] 大纲/主线.md「主线（一句话）」小节仍为待填写")
     else:
         issues.append("[H1-BLOCK] 大纲/主线.md 不存在")
 
@@ -134,6 +195,14 @@ def check_chapters(chapter_files: list[Path], issues: list, context_files: list 
 
     # {in_world_date: {角色: location}}
     spacetime: dict[str, dict[str, str]] = defaultdict(dict)
+    # 时序检测用：(volume, chapter, date, path, 是否本次受检)
+    dated: list[tuple[int, int, str, Path, bool]] = []
+
+    def _vc(fm: dict) -> tuple[int, int]:
+        try:
+            return int(fm.get("volume", 0)), int(fm.get("chapter", 0))
+        except (TypeError, ValueError):
+            return 0, 0
 
     # 只读种子：已提交章节，建立既有时空占用（不报其自身 issue）
     for cf in sorted(context_files or []):
@@ -145,6 +214,9 @@ def check_chapters(chapter_files: list[Path], issues: list, context_files: list 
         if date and loc:
             for c in _parse_characters_present(fm.get("characters_present")):
                 spacetime[date].setdefault(c, loc)
+        if date:
+            v, ch = _vc(fm)
+            dated.append((v, ch, date, cf, False))
 
     for cf in sorted(chapter_files):
         fm = _parse_frontmatter(cf)
@@ -185,6 +257,9 @@ def check_chapters(chapter_files: list[Path], issues: list, context_files: list 
         # 时空检测
         loc = fm.get("location", "")
         date = fm.get("in_world_date", "")
+        if date:
+            v, ch = _vc(fm)
+            dated.append((v, ch, date, cf, True))
         if date and loc:
             for c in present:
                 if c in spacetime[date] and spacetime[date][c] != loc:
@@ -193,6 +268,21 @@ def check_chapters(chapter_files: list[Path], issues: list, context_files: list 
                         f" 出现在两个地点: '{spacetime[date][c]}' 和 '{loc}'"
                     )
                 spacetime[date][c] = loc
+
+    # 时序单调检测：按卷章排序后，相邻两章日期文字骨架相同且可解析时，
+    # 后章日期数值序列小于前章 = 时间线倒流。骨架不同（改元/换纪月名）→ 跳过。
+    dated.sort(key=lambda r: (r[0], r[1]))
+    for prev, curr in zip(dated, dated[1:]):
+        if not curr[4]:
+            continue
+        a, b = _date_parts(prev[2]), _date_parts(curr[2])
+        if not a or not b or a[0] != b[0]:
+            continue
+        if b[1] < a[1]:
+            issues.append(
+                f"[BLOCK] {curr[3].relative_to(ROOT)}: 日期 '{curr[2]}' 早于"
+                f" 前一章（第{prev[0]}卷第{prev[1]}章）的 '{prev[2]}'——时间线倒流"
+            )
 
 def main():
     import argparse

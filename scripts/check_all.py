@@ -7,6 +7,9 @@
 
     python scripts/check_all.py            # 全量输出（复盘中用）
     python scripts/check_all.py --quiet    # 无输出 = 通过（完工清单默认模式）
+
+远端更新提醒：每次运行末尾检查 GitHub 上游有无新提交，有则打印 [提醒]——
+脚本只提醒、不自动更新，是否 `git pull` 由 agent 判断。离线/无上游分支时静默。
 """
 from __future__ import annotations
 
@@ -16,6 +19,33 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def check_remote_updates() -> str | None:
+    """远端上游有新提交 → 提醒文案；无上游/离线/无更新 → None（全程 fail-open）。"""
+    try:
+        # fetch 失败（离线等）不阻断——仍可用上次 fetch 的远端跟踪分支比较
+        subprocess.run(
+            ["git", "fetch", "--quiet"],
+            cwd=ROOT, capture_output=True, timeout=10,
+            text=True, encoding="utf-8", errors="replace",
+        )
+        proc = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD..@{u}"],
+            cwd=ROOT, capture_output=True, timeout=10,
+            text=True, encoding="utf-8", errors="replace",
+        )
+        if proc.returncode != 0:
+            return None
+        n = int(proc.stdout.strip() or "0")
+    except (subprocess.TimeoutExpired, ValueError, OSError):
+        return None
+    if n <= 0:
+        return None
+    return (
+        f"[提醒] 远端上游有 {n} 个新提交（本项目可能已更新）。"
+        f"脚本不自动更新——先 git pull 或人工判断后再开始工作"
+    )
 
 # 检查器列表——新增机械检查只改这一处。
 # 每个条目: (名称, [命令], 失败时的修复指引)
@@ -115,6 +145,9 @@ def main() -> int:
     if not failed:
         if not args.quiet:
             print(f"\n[PASS] 全部 {len(CHECKS)} 项通过")
+        reminder = check_remote_updates()
+        if reminder:
+            print(f"\n{reminder}")
         return 0
 
     # 失败时：汇总 + 逐条给出修复命令
@@ -123,6 +156,9 @@ def main() -> int:
     for name, guide in failed:
         print(f"  [{name}] → {guide}")
     print(f"{'=' * 50}")
+    reminder = check_remote_updates()
+    if reminder:
+        print(f"\n{reminder}")
     return 1
 
 
