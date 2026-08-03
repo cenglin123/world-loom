@@ -14,6 +14,18 @@
 - check_docs.py 新增契约检查：样本已入库但规格未登记 → FAIL
 - dogfood 走查：以用户提供的 4 篇真实样本验证流程全链路（含契约检查正反向、publish 零泄漏），测试材料已弃置不入库
 
+### 文档对齐修复（独立审计后）
+
+#### 变更内容
+- - 使用手册：大纲六种→七种；创建者表加「模仿文风」提示词入口
+- - docs/writing-style.md：基线三项→四项（补文风模仿）
+- - _模板/README.md：覆盖表删幽灵行 overview、补齐 21 对真实映射并指针化；治理表述改为以 hook 清单为准
+- - docs/CURRENT.md：文风吸纳计划改为已完成并指向 completed/；引导探测指引回灌 _模板/docs/CURRENT.md
+- - _分发/README.md：目录树补 _方法/、06_文风样本/、docs/workflow.md 与 init 档案；守住表加文风契约行
+- - docs/audit-checklist.md：删掉声称不枚举却枚举的检查器子集
+- - docs/development.md：治理清单示例覆盖面更新
+
+
 ---
 
 ## 2026-07-29

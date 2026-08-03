@@ -25,11 +25,19 @@
 | `_模板/04_伏笔/README.md` | `04_伏笔/README.md` |
 | `_模板/05_复盘/reviewer-protocol.md` | `05_复盘/reviewer-protocol.md` |
 | `_模板/05_复盘/reviewer-prompt-template.md` | `05_复盘/reviewer-prompt-template.md` |
+| `_模板/05_复盘/maintenance-executor.md` | `05_复盘/maintenance-executor.md` |
 | `_模板/05_复盘/复盘模板.md` | `05_复盘/复盘模板.md` |
 | `_模板/05_复盘/README.md` | `05_复盘/README.md` |
-| `_模板/docs/overview.md` | `docs/overview.md` |
+| `_模板/06_文风样本/README.md` | `06_文风样本/README.md` |
 | `_模板/docs/CURRENT.md` | `docs/CURRENT.md` |
+| `_模板/docs/CHANGELOG.md` | `docs/CHANGELOG.md` |
+| `_模板/docs/decisions.md` | `docs/decisions.md` |
 | `_模板/docs/style-locked.md` | `docs/style-locked.md` |
+| `_模板/docs/plans/README.md` | `docs/plans/README.md` |
+| `_模板/docs/plans/active/README.md` | `docs/plans/active/README.md` |
+| `_模板/简介.md` | `简介.md` |
+
+> 权威清单以 `python scripts/template.py check` 输出为准——本表是导览，新增模板只改 `_模板/` 目录本身。
 
 > **不在本目录的模板**：`02_人物/人物模板.md` 是**实例模板**——每新增一个角色就复制出一份新文件，原件始终留在原地且入库，脚本（`check_tags.py wizard`）也依赖其路径。`05_复盘/` 下的协议与模板文件**已纳入本目录**（`reviewer-protocol.md`、`reviewer-prompt-template.md`、`复盘模板.md`、`README.md`），与其他目录对齐。本目录管的是"就地填写、填完即产物"的那类文件 + `05_复盘/` 的方法协议。
 
@@ -45,4 +53,4 @@ python scripts/template.py reset --all --force   # 真的重置（开新书用�
 ## 改模板的注意事项
 
 - 改模板**不会**自动同步到已存在的内容文件；已在写的书需要人工把结构变化搬过去（或对未填写的文件跑 `reset`）
-- `_模板/docs/style-locked.md` 与 `_模板/00_世界观/核心设定.md` 属治理文件，修改需带 `[governance]` 提交标记
+- 本目录多份文件与内容层产物**成对纳入治理保护**（改哪份都要标记），清单以 `.githooks/commit-msg` 的 `GOVERNANCE_FILES` 为唯一权威源，修改需带 `[governance]` 提交标记

@@ -4,7 +4,7 @@
 
 ## 机械检查项
 
-- [ ] `python scripts/check_all.py` 全绿。检查器清单以脚本内 `CHECKS` 为准（同步 / 模板层 / 死链 / 伏笔 / 关系 / 标签 / 章节时空 + 就绪自检），本文不重复枚举以免漂移。
+- [ ] `python scripts/check_all.py` 全绿。检查器清单以脚本内 `CHECKS` 为唯一权威源，本文不重复枚举以免漂移。
 - [ ] AGENTS.md 行数在 200 行以内、词数在 400 以内：`python scripts/audit.py check` 含行数/词数检查
 
 ## 小说专项审计（agent 手动裁决）

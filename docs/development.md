@@ -59,8 +59,8 @@ python scripts/publish.py --force    # 真推
 
 `.githooks/commit-msg` 的 `GOVERNANCE_FILES` 是唯一权威源。清单覆盖两类：
 
-- **使用层受保护文档**：世界观硬设定、`docs/style-locked.md`、审计清单、reviewer 协议、维护协议——保护下游用户的创作基线
-- **开发层机制文件**：`layers.py` `publish.py` 三个 hook `_分发/AGENTS.md`
+- **使用层受保护文档**：世界观硬设定、`docs/style-locked.md`、`docs/writing-style.md`、审计清单、reviewer 协议、维护协议、`06_文风样本/README.md` 等——保护下游用户的创作基线
+- **开发层机制文件**：`layers.py` `publish.py` `check_maintenance.py`、三个 hook、`_分发/` 双文档、根 `AGENTS.md` 等
 
 内容层文件与其 `_模板/` 骨架**成对保护**——改哪一份都要标记，否则模板与产物会漂移。
 
