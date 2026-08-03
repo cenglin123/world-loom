@@ -63,6 +63,13 @@ CHECKS: list[tuple[str, list[str], str]] = [
         "孤儿文档：接进导航或删除；占位符滞留：设定落后于正文，确认是否有意",
     ),
     (
+        "方法",
+        ["scripts/method.py", "check"],
+        "索引过期 → python scripts/method.py index"
+        "；缺 症状 字段 → 补上求助者会用的原话，否则这张卡搜不到"
+        "；近重复 → 合并，或让两张卡的一句话与落点明确分开",
+    ),
+    (
         "编码",
         ["scripts/check_encoding.py"],
         "补 encoding=\"utf-8\"——中文 Windows 的 GBK 区域会让 UTF-8 中文路径解码崩溃",
