@@ -155,13 +155,23 @@ def _extract_wikilinks(text: str) -> list[tuple[str, int]]:
     return out
 
 
+def _pending_init(rel: str, products: set[str]) -> bool:
+    """目标由 `init` 生成——尚未生成不算断链。
+
+    目录也算：`docs/plans/active/` 在 init 写进第一个产物时就存在了。
+    """
+    rel = rel.replace("\\", "/").rstrip("/")
+    if rel in products:
+        return True
+    return any(p.startswith(rel + "/") for p in products)
+
+
 def _is_product(resolved: Path, products: set[str]) -> bool:
-    """目标是 `init` 会生成的产物——尚未生成不算断链。"""
     try:
         rel = resolved.relative_to(ROOT).as_posix()
     except ValueError:
         return False
-    return rel in products
+    return _pending_init(rel, products)
 
 
 def _index_by_name(docs: list[str]) -> dict[str, list[str]]:
@@ -219,8 +229,8 @@ def _check_dead_links() -> list[dict[str, Any]]:
             rel = _resolve_wikilink(target, by_name)
             if rel is None:
                 # 产物尚未生成 ≠ 断链——下游 clone 跑 init 之前本就是空的
-                pending = {target, target + ".md"} & products
-                status = "ok" if pending else "dead"
+                status = "ok" if (_pending_init(target, products)
+                                  or target + ".md" in products) else "dead"
             elif (not source_is_content
                   and layers.is_content(rel)
                   and rel not in products):
