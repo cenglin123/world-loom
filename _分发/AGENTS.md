@@ -66,6 +66,8 @@
 - **关系同步** `[提醒]`：有意义互动后 `relationship.py set/update`，卷末 `regenerate`
 - **标签同步** `[提醒]`：角色创建或能力变化后更新 tags，卷末 `check_tags.py regenerate`
 - **受保护文档** `[阻断]`：世界观硬设定、`docs/style-locked.md` 等的改动须带 `[governance]`。清单见 `.githooks/commit-msg`
+- **体检** `[你负责]`：用户说「体检一下」→ 跑 `check_all.py` 并逐项汇报
+- **观察者姿态** `[你负责]`：用户只旁观时，只推演/输出观点，不擅自动笔写正文
 
 ### 默认偏好
 

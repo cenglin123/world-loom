@@ -9,7 +9,9 @@ _模板/ 按原路径存放每个可填写文件的空白骨架。骨架与内�
     check                     对照表：模板 → 内容文件是否存在、是否已填写
     init                      缺失的内容文件从模板生成（绝不覆盖已存在文件）
     reset <路径...>           预览重置（不加 --force 只列出，不写入）
-    reset --all --force       全部重置为模板（开新书用；旧内容仍在 git 历史里）
+    reset --all --force       全部重置为模板 + 删除模板覆盖不到的内容层文件
+                              （正文章节、角色卡、卷复盘、文风样本、已归档计划），
+                              开新书用；旧内容仍在 git 历史里
 """
 from __future__ import annotations
 
@@ -19,8 +21,18 @@ import shutil
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from layers import is_content  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 TPL_DIR = ROOT / "_模板"
+
+# reset --all 的删除范围：这些前缀下「内容层且无模板覆盖」的文件会被清掉。
+# 源码例外（各 README、_设计方法、人物模板、复盘协议）is_content 为 False，天然豁免。
+EXTRA_DELETE_PREFIXES: tuple[str, ...] = (
+    "00_世界观/", "01_大纲/", "02_人物/", "03_正文/", "04_伏笔/",
+    "05_复盘/", "06_文风样本/", "docs/plans/",
+)
 
 # 判定「产物是否已被填写」——占位符特征。命中越少说明填得越多。
 PLACEHOLDER_RE = re.compile(r"[（(]待填写|[（(]待填|[（(]待选择|[（(]示例")
@@ -47,6 +59,28 @@ def products() -> set[str]:
     这些路径属内容层，但源码层文档可以指向它们——下游跑完 init 就存在。
     """
     return {rel.as_posix() for rel in _templates()}
+
+
+def extra_content_files() -> list[str]:
+    """删除范围内的内容层文件中，无模板覆盖的那些——`reset --all` 要清掉的部分。
+
+    正文章节、角色卡、卷复盘、文风样本、已归档计划等：它们不在 _模板/ 里，
+    但属于"这本书"——开新书时重置模板产物不够，还得删掉这些才算内容清空。
+    """
+    prods = products()
+    out = []
+    for pre in EXTRA_DELETE_PREFIXES:
+        d = ROOT / pre
+        if not d.is_dir():
+            continue
+        for p in sorted(d.rglob("*")):
+            if not p.is_file():
+                continue
+            rel = p.relative_to(ROOT).as_posix()
+            if rel in prods or not is_content(rel):
+                continue
+            out.append(rel)
+    return out
 
 
 def _fill_state(target: Path) -> str:
@@ -119,11 +153,17 @@ def cmd_reset(args) -> int:
         print("[FAIL] 未指定要重置的文件（用 --all 或给出路径）")
         return 1
 
+    extras = extra_content_files() if args.all else []
+
     print("将被模板覆盖的文件：")
     for rel in targets:
         state = _fill_state(ROOT / rel)
         warn = "  ← 已填写，内容将丢失" if state == "filled" else ""
         print(f"  {rel.as_posix()}{warn}")
+    if extras:
+        print("将被删除的文件（模板覆盖不到的内容层产物）：")
+        for rel in extras:
+            print(f"  - {rel}")
 
     if not args.force:
         print("\n[DRY-RUN] 未写入任何文件。确认无误后加 --force 真正执行。")
@@ -134,6 +174,21 @@ def cmd_reset(args) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(TPL_DIR / rel, target)
     print(f"\n[OK] 已重置 {len(targets)} 个文件为模板状态")
+    for rel in extras:
+        (ROOT / rel).unlink()
+    # 清理删空了的目录（保留有内容的）
+    for pre in EXTRA_DELETE_PREFIXES:
+        d = ROOT / pre
+        if not d.is_dir():
+            continue
+        for sub in sorted((p for p in d.rglob("*") if p.is_dir()),
+                          key=lambda p: len(p.parts), reverse=True):
+            try:
+                sub.rmdir()
+            except OSError:
+                pass
+    if extras:
+        print(f"[OK] 已删除 {len(extras)} 个模板覆盖不到的内容层文件")
     return 0
 
 
