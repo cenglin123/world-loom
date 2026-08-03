@@ -14,8 +14,7 @@
   python scripts/method.py index                    # 重新生成 _方法/_索引.md
   python scripts/method.py check                    # 索引新鲜度 + 双链有效性 + 近重复
   python scripts/method.py dupe "<待收方法的摘要>"   # 吸纳前查重
-  python scripts/method.py ingest <素材路径>        # 生成加工工单
-  python scripts/method.py skip <来源> --reason ... # 登记「看过，不收」
+  python scripts/method.py ingest <素材路径>        # 吸纳：查重 + 摆出候选
 """
 
 from __future__ import annotations
@@ -25,13 +24,11 @@ import math
 import re
 import sys
 from collections import Counter
-from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LIB_DIR = ROOT / "_方法"
 INDEX_FILE = LIB_DIR / "_索引.md"
-SKIP_FILE = LIB_DIR / "_未收.md"
 
 # 字段权重：标题与关键词是作者显式给的检索钩子，比正文更可信。
 # `症状` 权重最高——它是**求助者的原话**，而作者写卡时用的是术语。
@@ -48,10 +45,6 @@ ASCII_WORD = re.compile(r"[a-zA-Z][a-zA-Z0-9_-]*")
 # ---------------------------------------------------------------------------
 # 分词：中文双字 + 西文整词
 # ---------------------------------------------------------------------------
-
-def _today() -> str:
-    return date.today().isoformat()
-
 
 def tokenize(text: str) -> list[str]:
     """中文按双字滑窗切，西文按整词切。
@@ -76,7 +69,7 @@ def tokenize(text: str) -> list[str]:
 
 class Card:
     __slots__ = ("path", "id", "stage", "tags", "keywords", "symptoms",
-                 "oneliner", "landing", "related", "sources", "body", "history")
+                 "oneliner", "landing", "related", "body")
 
     def __init__(self, path: Path, meta: dict[str, str], body: str):
         self.path = path
@@ -88,12 +81,9 @@ class Card:
         self.oneliner = meta.get("一句话", "")
         self.landing = meta.get("落点", "")
         self.related = _split_list(meta.get("相关", ""))
-        self.sources = _split_list(meta.get("来源", ""))
-        self.body, self.history = _split_history(body)
+        self.body = body
 
     def fields(self) -> dict[str, str]:
-        """参与检索的字段。`沿革` 不在内——它记的是这张卡怎么来的，
-        不是它能解决什么；混进检索只会让改动多的卡莫名其妙地更容易命中。"""
         return {
             "id": self.id,
             "一句话": self.oneliner,
@@ -111,18 +101,6 @@ class Card:
 
     def rel(self) -> str:
         return self.path.relative_to(ROOT).as_posix()
-
-
-def _split_history(body: str) -> tuple[str, str]:
-    """把「## 沿革」从正文里切出来。
-
-    卡的**正文只描述当前规则**（无补丁感），演进痕迹另存——
-    这和人物卡「演化记录」与当前人设分开存放是同一条规矩。
-    """
-    m = re.search(r"^##\s*沿革\s*$", body, re.M)
-    if not m:
-        return body, ""
-    return body[:m.start()].rstrip(), body[m.end():].strip()
 
 
 def _split_list(raw: str) -> list[str]:
@@ -368,11 +346,16 @@ def _iter_material(path: Path) -> list[Path]:
     return []
 
 
-def cmd_ingest(args: argparse.Namespace) -> int:
-    """为每份素材生成加工工单。
+def _indent(text: str, prefix: str = "  > ") -> str:
+    return "\n".join(prefix + ln for ln in text.splitlines())
 
-    脚本不做蒸馏、不判收不收——它只把**对比材料摆到位**并把问题问出来。
-    蒸馏和判定是 agent 的事，这道边界不能越（越了就等于用词面统计替代理解）。
+
+def cmd_ingest(args: argparse.Namespace) -> int:
+    """吸纳素材：查重 → 摆出候选 → 交给 agent 判断。
+
+    脚本只做检索这一步。**"素材是否更优"不设评分标准**——
+    任何写死的评判规则都会在遇到没预料过的素材时判错，
+    而模型本来就有这个判断力。这里只负责把可比的东西并排放好。
     """
     src = Path(args.path)
     materials = _iter_material(src)
@@ -385,11 +368,12 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         print("[FAIL] _方法/ 下没有方法卡")
         return 1
     bm = BM25(cards)
-    skipped = _skipped_sources()
 
-    print(f"# 加工工单（{len(materials)} 份素材）\n")
-    print("对每份素材依次回答下面三问，再决定处置。**不许跳过第二问**——")
-    print("素材与已有卡重复不等于没价值，它可能正说明那张卡漏了一步或判据站不住。\n")
+    print(f"# 吸纳（{len(materials)} 份素材）\n")
+    print("对每份素材：\n")
+    print("- **有重复** → 和下面的卡逐一比较。**素材更优就用它改写那张卡**，"
+          "否则丢掉这份素材。什么叫更优由你判断，没有清单。")
+    print("- **不重复** → 按 `_方法/README.md` 的卡片格式直接开新卡。\n")
 
     for mat in materials:
         try:
@@ -398,124 +382,30 @@ def cmd_ingest(args: argparse.Namespace) -> int:
             print(f"\n## {mat.name}\n\n[跳过] 读取失败：{exc}")
             continue
 
-        name = mat.stem
-        print(f"\n## {name}")
+        print(f"\n## {mat.stem}")
         print(f"\n素材：`{mat}`（{len(text)} 字）")
-        key, hit = _match_skipped(name, skipped)
-        if hit:
-            reason, revised = hit
-            print(f"\n> **已登记为不收**（{key}）：{reason}")
-            if revised:
-                print(f"> 但它修正过：{'、'.join(revised)}")
-            print("> 除非有新理由推翻，否则跳过——别重复评估同一份素材。")
+
+        ranked = bm.score(text)[: args.top]
+        if not ranked:
+            print("\n库里没有相关卡 → 不重复，直接开新卡。")
             continue
 
-        ranked = bm.score(text)[:3]
-        if not ranked:
-            print("\n库里没有相关卡——若含可执行步骤，直接开新卡。")
-        else:
-            print("\n库里最相关的卡（**逐张判断是否受影响**）：\n")
-            for score, card in ranked:
-                print(f"### {card.id}（{score:.1f} 分，{card.stage}）")
-                print(f"\n- 一句话：{card.oneliner}")
-                print(f"- 落点：{card.landing}")
+        print("\n查重命中（分数只表示词面相近，是否真重复由你判断）：\n")
+        for i, (score, card) in enumerate(ranked):
+            print(f"### {card.id}（{score:.0f}，{card.stage}）")
+            print(f"\n- 落点：{card.landing}")
+            if i == 0:
+                # 首位是最可能被替换的那张，给全文才比得了
+                print(f"\n{_indent(card.body.strip())}\n")
+            else:
+                print(f"- 一句话：{card.oneliner}")
                 crit = card.criteria()
                 if crit:
-                    print(f"- 现有判据：\n\n{_indent(crit)}\n")
+                    print(f"- 判据：\n\n{_indent(crit)}\n")
 
-        print("**三问**：")
-        print("1. 这份素材里有**可照做的步骤**吗？没有就是素材不是方法——`skip` 登记掉。")
-        print("2. 它和上面每张卡的判据**冲突**吗？")
-        print("   - 冲突 → 改那张卡，并在其「## 沿革」记一行（为什么改、依据哪份素材）")
-        print("   - 不冲突但补强 → 并进那张卡；新外壳写进 `关键词`，新说法写进 `症状`")
-        print("   - 无关 → 开新卡，与最近的卡互相 `相关:`")
-        print("3. 处置完了吗？开新卡要写 `来源:`；不开卡要 `skip` 登记——")
-        print("   若它虽不成卡却改了某张卡，`skip --revised <卡名>` 把这件事记上。")
-        print("   **不收 ≠ 无影响**，混作一谈就等于把最有价值的那类反馈丢了。")
-
-    pending = [m for m in materials if not _match_skipped(m.stem, skipped)[1]]
-    if pending:
-        print("\n---\n")
-        print("不开卡的登记模板（`--revised` 只在它确实改了某张卡时才写）：\n")
-        print("```")
-        collection = src.name if src.is_dir() else src.parent.name
-        for mat in pending:
-            print(f'python scripts/method.py skip "{collection}/{mat.stem}" '
-                  f'--reason "<为什么不成卡>" --revised "<被它改过的卡>"')
-        print("```")
-    print("\n处置完跑：`python scripts/method.py index && python scripts/method.py check`")
-    return 0
-
-
-def _indent(text: str, prefix: str = "  > ") -> str:
-    return "\n".join(prefix + ln for ln in text.splitlines())
-
-
-def _match_skipped(stem: str, skipped: dict[str, tuple[str, list[str]]]):
-    """台账里的来源标识与文件名对上号。
-
-    来源写的是稳定标识（`频道/标题`），文件名往往还带副标题或后缀。
-    两边取末段做双向包含匹配——对不上号的登记等于没登记，
-    而这种失效是静默的：脚本照跑，只是永远命中不了。
-    """
-    for key, val in skipped.items():
-        tail = key.rsplit("/", 1)[-1]
-        if tail and (tail in stem or stem in tail):
-            return key, val
-    return None, None
-
-
-def _skipped_sources() -> dict[str, tuple[str, list[str]]]:
-    """`_未收.md` 里已登记的来源 → (不收的理由, 它修正过的卡)。
-
-    **不收 ≠ 无影响**：一份素材可以不含可照做步骤（不该开卡），
-    却推翻了某张已有卡的判据。第二列记前者，第三列记后者，两件事分开。
-    """
-    if not SKIP_FILE.is_file():
-        return {}
-    out: dict[str, tuple[str, list[str]]] = {}
-    for line in SKIP_FILE.read_text(encoding="utf-8").splitlines():
-        if not line.startswith("|") or line.startswith("|--"):
-            continue
-        cells = [c.strip() for c in line.split("|")[1:-1]]
-        # 表头只能靠首格精确匹配认——用 "来源" in line 会把名字里带
-        # 「来源」的数据行一起吞掉，而且吞得毫无声息。
-        if cells and cells[0] == "来源":
-            continue
-        if len(cells) >= 3:
-            revised = [] if cells[2] in ("无", "-", "") else _split_list(cells[2])
-            out[cells[0]] = (cells[1], revised)
-    return out
-
-
-def cmd_skip(args: argparse.Namespace) -> int:
-    """登记「看过，未开卡」。
-
-    这个判断本身有价值，却不在任何一张卡上留痕——不记下来，
-    下次遇到同一份素材就要从头再评估一遍。开了卡的素材自带 `来源:`，
-    所以只有没开卡的才需要台账。
-
-    第三列记「虽未开卡但改过哪张卡」——**不收 ≠ 无影响**。
-    """
-    skipped = _skipped_sources()
-    if args.source in skipped and not args.force:
-        print(f"[INFO] 已登记过：{args.source} —— {skipped[args.source][0]}")
-        return 0
-    header = (
-        "# 看过但未开卡的素材\n\n"
-        "> 由 `python scripts/method.py skip` 追加。\n"
-        "> 记在这里是为了**不重复评估**——`ingest` 会自动跳过已登记的来源。\n"
-        "> 「修正过的卡」记的是：它虽不成卡，却推翻或补强了某张已有卡。\n"
-        "> 有新理由推翻旧判断时，删掉对应行再重新走一遍吸纳。\n\n"
-        "| 来源 | 不开卡的理由 | 修正过的卡 | 日期 |\n"
-        "|------|-------------|-----------|------|\n"
-    )
-    if not SKIP_FILE.is_file():
-        SKIP_FILE.write_text(header, encoding="utf-8")
-    with SKIP_FILE.open("a", encoding="utf-8") as fh:
-        fh.write(f"| {args.source} | {args.reason} | {args.revised or '无'} | {args.date} |\n")
-    print(f"[OK] 已登记：{args.source}"
-          + (f"（修正过 {args.revised}）" if args.revised else ""))
+    print("\n---\n")
+    print("改完或新增完跑："
+          "`python scripts/method.py index && python scripts/method.py check`")
     return 0
 
 
@@ -540,12 +430,6 @@ def cmd_check(_args: argparse.Namespace) -> int:
                 f"没有原话钩子这张卡就只有作者自己搜得到")
 
     ids = {c.id for c in cards}
-    for source, (reason, revised) in _skipped_sources().items():
-        for rid in revised:
-            if rid not in ids:
-                problems.append(
-                    f"[SOURCE] _未收.md 的「{source}」称修正了 {rid}，但没这张卡")
-
     for card in cards:
         for rid in card.related:
             if rid not in ids:
@@ -592,17 +476,10 @@ def main() -> int:
     p.add_argument("text")
     p.set_defaults(func=cmd_dupe)
 
-    p = sub.add_parser("ingest", help="为素材生成加工工单（查重 + 反向影响提问）")
+    p = sub.add_parser("ingest", help="吸纳素材：查重并摆出可比的已有卡")
     p.add_argument("path", help="素材文件或目录")
+    p.add_argument("--top", type=int, default=3)
     p.set_defaults(func=cmd_ingest)
-
-    p = sub.add_parser("skip", help="登记「看过，不收」，避免重复评估")
-    p.add_argument("source")
-    p.add_argument("--reason", required=True)
-    p.add_argument("--revised", help="虽未开卡，但被这份素材修正过的卡（逗号分隔）")
-    p.add_argument("--date", default=_today())
-    p.add_argument("--force", action="store_true")
-    p.set_defaults(func=cmd_skip)
 
     p = sub.add_parser("check", help="字段/双链/索引/重复检查")
     p.set_defaults(func=cmd_check)
