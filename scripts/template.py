@@ -41,6 +41,14 @@ def _templates() -> list[Path]:
     return out
 
 
+def products() -> set[str]:
+    """`init` 会生成的产物路径（仓库相对，posix 分隔）。
+
+    这些路径属内容层，但源码层文档可以指向它们——下游跑完 init 就存在。
+    """
+    return {rel.as_posix() for rel in _templates()}
+
+
 def _fill_state(target: Path) -> str:
     """产物的填写状态：missing / blank / filled。"""
     if not target.is_file():
