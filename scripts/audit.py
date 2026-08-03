@@ -19,10 +19,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import layers  # noqa: E402
+import template  # noqa: E402
+
 # Convention: this script lives at <project_root>/scripts/audit.py.
 ROOT = Path(__file__).resolve().parent.parent
 
 MARKDOWN_LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
+WIKILINK_RE = re.compile(r"!?\[\[([^\[\]]+)\]\]")
 FENCED_BLOCK_RE = re.compile(r"```[\s\S]*?```", re.MULTILINE)
 INLINE_CODE_RE = re.compile(r"`[^`]+`")
 HTML_COMMENT_RE = re.compile(r"<!--[\s\S]*?-->")
@@ -40,18 +45,20 @@ _ROOT_DOC_FILES = [
     "AGENTS.md",
 ]
 
-# Dynamic discovery: all .md files under docs/ (excluding plans/ and __pycache__).
 def _discover_doc_files() -> list[str]:
-    """Discover all markdown files to check for dead links."""
-    files = list(_ROOT_DOC_FILES)
-    docs_dir = ROOT / "docs"
-    if docs_dir.is_dir():
-        for f in sorted(docs_dir.rglob("*.md")):
-            rel = str(f.relative_to(ROOT)).replace("\\", "/")
-            if rel.startswith("docs/plans/"):
-                continue
-            files.append(rel)
-    return files
+    """入库的全部 markdown。
+
+    未入库的文件（`.claudian/` 等工作区）不参与——它们不是仓库的一部分，
+    其中的链接指向别处是常态。
+    """
+    out = subprocess.run(
+        ["git", "-c", "core.quotepath=false", "ls-files", "*.md"],
+        cwd=ROOT, capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
+    )
+    if out.returncode != 0:
+        return list(_ROOT_DOC_FILES)
+    return sorted(f for f in out.stdout.splitlines() if f.strip())
 
 MANIFEST_GLOBS = [
     "package.json",
@@ -88,6 +95,19 @@ def _exists(rel: str) -> bool:
     return (ROOT / rel).is_file()
 
 
+def _effective_dir(doc_rel: str) -> Path:
+    """相对链接的解析基准目录——**内容落地后所在的目录**，不一定是文件当前位置。
+
+    `_分发/README.md` 会被映射成根目录的 `README.md`，`_模板/docs/CURRENT.md`
+    会被 init 生成到 `docs/`。按文件当前位置解析，这两类的相对链接全是假死链。
+    """
+    rel = doc_rel.replace("\\", "/")
+    landed = layers.DIST_MAP.get(rel, (None,))[0]
+    if landed is None and rel.startswith("_模板/"):
+        landed = rel[len("_模板/"):]
+    return (ROOT / landed).parent if landed else (ROOT / rel).parent
+
+
 def _resolve(target: str, source_dir: Path) -> Path:
     """Resolve a markdown link target relative to the source file's directory.
 
@@ -119,26 +139,98 @@ def _extract_file_links(text: str) -> list[tuple[str, str, int]]:
     return links
 
 
+def _extract_wikilinks(text: str) -> list[tuple[str, int]]:
+    """Return (target, line_number) for every `[[wikilink]]` and `![[embed]]`.
+
+    Target keeps only the path part — the `|别名`, `#小节` 与结尾 `/` 都剥掉。
+    表格里的别名写作 `\\|`，转义反斜杠先还原再切。
+    """
+    out: list[tuple[str, int]] = []
+    for lineno, line in enumerate(_strip_noise(text).splitlines(), 1):
+        for m in WIKILINK_RE.finditer(line):
+            raw = m.group(1).replace("\\|", "|")
+            target = raw.split("|")[0].split("#")[0].strip().rstrip("/")
+            if target:
+                out.append((target, lineno))
+    return out
+
+
+def _is_product(resolved: Path, products: set[str]) -> bool:
+    """目标是 `init` 会生成的产物——尚未生成不算断链。"""
+    try:
+        rel = resolved.relative_to(ROOT).as_posix()
+    except ValueError:
+        return False
+    return rel in products
+
+
+def _index_by_name(docs: list[str]) -> dict[str, list[str]]:
+    """basename（去 .md）→ 仓库相对路径，供无路径 wikilink 回退解析。"""
+    idx: dict[str, list[str]] = {}
+    for rel in docs:
+        idx.setdefault(Path(rel).stem, []).append(rel)
+    return idx
+
+
+def _resolve_wikilink(target: str, by_name: dict[str, list[str]]) -> str | None:
+    """Wikilink 按仓库根解析（Obsidian 约定），失败则回退唯一同名匹配。
+
+    同名多份时判为无法解析——链接本身有歧义，猜一个只会掩盖问题。
+    返回仓库相对路径（posix），解析不到返回 None。
+    """
+    for cand in (target, target + ".md"):
+        p = ROOT / cand
+        if p.is_file():
+            return cand.replace("\\", "/")
+        if p.is_dir():
+            return cand.rstrip("/").replace("\\", "/")
+    hits = by_name.get(Path(target).name, [])
+    return hits[0] if len(hits) == 1 else None
+
+
 # ---------------------------------------------------------------------------
 # dead-links
 # ---------------------------------------------------------------------------
 
 def _check_dead_links() -> list[dict[str, Any]]:
+    docs = _discover_doc_files()
+    by_name = _index_by_name(docs)
+    products = template.products()
     results: list[dict[str, Any]] = []
-    for doc_rel in _discover_doc_files():
+
+    for doc_rel in docs:
         path = ROOT / doc_rel
         if not path.is_file():
             continue
-        source_dir = path.parent
-        for target, _label, lineno in _extract_file_links(_read(path)):
+        source_dir = _effective_dir(doc_rel)
+        text = _read(path)
+        source_is_content = layers.is_content(doc_rel)
+
+        for target, _label, lineno in _extract_file_links(text):
             resolved = _resolve(target, source_dir)
-            exists = resolved.is_file() or resolved.is_dir()
+            exists = resolved.is_file() or resolved.is_dir() or _is_product(resolved, products)
             results.append({
                 "kind": "dead_link",
                 "status": "ok" if exists else "dead",
-                "source": doc_rel,
-                "line": lineno,
-                "target": target,
+                "source": doc_rel, "line": lineno, "target": target,
+            })
+
+        for target, lineno in _extract_wikilinks(text):
+            rel = _resolve_wikilink(target, by_name)
+            if rel is None:
+                # 产物尚未生成 ≠ 断链——下游 clone 跑 init 之前本就是空的
+                pending = {target, target + ".md"} & products
+                status = "ok" if pending else "dead"
+            elif (not source_is_content
+                  and layers.is_content(rel)
+                  and rel not in products):
+                status = "cross_layer"
+            else:
+                status = "ok"
+            results.append({
+                "kind": "dead_link",
+                "status": status,
+                "source": doc_rel, "line": lineno, "target": target,
             })
     return results
 
@@ -391,6 +483,7 @@ def _run_all() -> list[dict[str, Any]]:
 _STATUS_GLYPHS: dict[str, str] = {
     "ok":          "OK",
     "dead":        "DEAD",
+    "cross_layer": "CROSS",
     "missing":     "MISS",
     "orphan":      "ORPHAN",
     "undocumented":"UNDOC",
@@ -413,8 +506,11 @@ def _format_text(results: list[dict[str, Any]], verbose: bool = False) -> str:
         kind = r["kind"]
 
         if kind == "dead_link":
+            note = ""
+            if r["status"] == "cross_layer":
+                note = "  ← 源码层指向内容层，分发后必断"
             lines_out.append(
-                f"[{glyph:<6}] {r['source']}:{r['line']} -> {r['target']}"
+                f"[{glyph:<6}] {r['source']}:{r['line']} -> {r['target']}{note}"
             )
         elif kind == "structure":
             if r["status"] == "orphan":

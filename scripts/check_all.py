@@ -31,9 +31,11 @@ CHECKS: list[tuple[str, list[str], str]] = [
         "python scripts/template.py init（补缺失）或检查 _模板/ 与 .gitignore 是否配套",
     ),
     (
-        "死链",
+        "链接",
         ["scripts/audit.py", "dead-links"],
-        "检查标 dead 的链接目标是否确实不存在——可能是路径拼写或文件被移动",
+        "DEAD：目标不存在，查路径拼写或文件是否被移动"
+        "；CROSS：源码层文档指向内容层文件，分发后必断——"
+        "把该文件补进 _模板/（下游 init 生成），或把这份文档划入内容层",
     ),
     (
         "伏笔",
