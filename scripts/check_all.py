@@ -143,7 +143,8 @@ CHECKS: list[tuple[str, list[str], str]] = [
     (
         "编码",
         ["scripts/check_encoding.py"],
-        "补 encoding=\"utf-8\"——中文 Windows 的 GBK 区域会让 UTF-8 中文路径解码崩溃",
+        "源码缺 encoding=/newline= → 按提示补（中文 Windows 会解码崩溃、写出 CRLF）"
+        "；工作区有 CRLF → python scripts/check_encoding.py --fix-eol",
     ),
     (
         "维护",

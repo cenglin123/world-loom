@@ -55,6 +55,15 @@
 - check_encoding.py 增设第三类检查：write_text 与 open 写模式缺 newline= → FAIL（读取与二进制豁免），新脚本再犯会被 pre-commit 挡下
 - [FAIL]/[PASS] 文案随之覆盖编码与换行两个维度
 
+### 换行治本补齐：仓库状态维度 + 一键归一
+
+#### 变更内容
+- check_encoding.py 增设第 4 类检查（git ls-files --eol）：已跟踪文本文件在工作区是 CRLF/混合换行 → FAIL。前三类是静态扫源码、只防新脚本引入，编辑器/PowerShell/别处 clone 带进来的存量 CRLF 一个都看不见——查源码防新增，查状态防存量，两者不互相覆盖
+- 新增 --fix-eol 一键归一（按字节替换 \r\n→\n，不碰内容），FAIL 提示直接给出该命令
+- 清掉存量：02_人物/relationships.json 与模板副本（relationship.py 修复前的残留）
+- check_all 编码项的修复指引覆盖源码与工作区两条路径
+
+
 
 
 
