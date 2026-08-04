@@ -8,8 +8,9 @@
     python scripts/check_all.py            # 全量输出（复盘中用）
     python scripts/check_all.py --quiet    # 无输出 = 通过（完工清单默认模式）
 
-远端更新提醒：每次运行末尾检查 GitHub 上游有无新提交，有则打印 [提醒]——
+远端更新提醒：每 20 次提交查一次 GitHub 上游有无新提交，有则打印 [提醒]——
 脚本只提醒、不自动更新，是否 `git pull` 由 agent 判断。离线/无上游分支时静默。
+[提醒] 不是 FAIL，不影响退出码。
 """
 from __future__ import annotations
 
@@ -20,25 +21,65 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# 联网是本脚本唯一的慢操作，而完工必检是高频动作——按提交数节流，
+# 只有跨过间隔才 fetch。计数状态放 .git/ 下：不入库、不随分发外泄、
+# 全新 clone 自动归零（新 clone 本就该查一次）。
+REMOTE_CHECK_INTERVAL = 20
+REMOTE_CHECK_STATE = "world-loom-remote-check"
+
+
+def _git(*args: str, timeout: int = 10) -> str | None:
+    """跑一条 git，成功返回 stdout（已 strip）；失败/超时返回 None。"""
+    try:
+        proc = subprocess.run(
+            ["git", *args],
+            cwd=ROOT, capture_output=True, timeout=timeout,
+            text=True, encoding="utf-8", errors="replace",
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.strip()
+
 
 def check_remote_updates() -> str | None:
-    """远端上游有新提交 → 提醒文案；无上游/离线/无更新 → None（全程 fail-open）。"""
+    """上游有新提交 → 提醒文案；未到间隔/无上游/离线/无更新 → None（全程 fail-open）。"""
+    # 无上游（开发仓即如此）→ 一次本地调用就返回，不联网也不动计数
+    if _git("rev-parse", "--abbrev-ref", "@{u}") is None:
+        return None
+    head = _git("rev-list", "--count", "HEAD")
+    git_dir = _git("rev-parse", "--git-dir")
+    if head is None or git_dir is None:
+        return None
     try:
-        # fetch 失败（离线等）不阻断——仍可用上次 fetch 的远端跟踪分支比较
-        subprocess.run(
-            ["git", "fetch", "--quiet"],
-            cwd=ROOT, capture_output=True, timeout=10,
-            text=True, encoding="utf-8", errors="replace",
-        )
-        proc = subprocess.run(
-            ["git", "rev-list", "--count", "HEAD..@{u}"],
-            cwd=ROOT, capture_output=True, timeout=10,
-            text=True, encoding="utf-8", errors="replace",
-        )
-        if proc.returncode != 0:
-            return None
-        n = int(proc.stdout.strip() or "0")
-    except (subprocess.TimeoutExpired, ValueError, OSError):
+        current = int(head)
+    except ValueError:
+        return None
+
+    state = ROOT / git_dir / REMOTE_CHECK_STATE
+    try:
+        last = int(state.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        last = None
+    # last 更大 = 历史被改写（reset/rebase）→ 当作到期，重新计数
+    if last is not None and 0 <= current - last < REMOTE_CHECK_INTERVAL:
+        return None
+
+    # 先记账再联网：离线时也只在下一个间隔重试，不会每次运行都干等 fetch 超时
+    try:
+        state.write_text(str(current), encoding="utf-8", newline="\n")
+    except OSError:
+        pass
+
+    # fetch 失败（离线等）不阻断——仍可用上次 fetch 的远端跟踪分支比较
+    _git("fetch", "--quiet")
+    ahead = _git("rev-list", "--count", "HEAD..@{u}")
+    if ahead is None:
+        return None
+    try:
+        n = int(ahead)
+    except ValueError:
         return None
     if n <= 0:
         return None
@@ -102,7 +143,8 @@ CHECKS: list[tuple[str, list[str], str]] = [
     (
         "编码",
         ["scripts/check_encoding.py"],
-        "补 encoding=\"utf-8\"——中文 Windows 的 GBK 区域会让 UTF-8 中文路径解码崩溃",
+        "源码缺 encoding=/newline= → 按提示补（中文 Windows 会解码崩溃、写出 CRLF）"
+        "；工作区有 CRLF → python scripts/check_encoding.py --fix-eol",
     ),
     (
         "维护",

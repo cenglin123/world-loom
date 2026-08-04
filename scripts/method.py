@@ -279,7 +279,7 @@ def cmd_index(args: argparse.Namespace) -> int:
     if args.stage:
         print(_index_text(cards, args.stage))
         return 0
-    INDEX_FILE.write_text(_index_text(cards), encoding="utf-8")
+    INDEX_FILE.write_text(_index_text(cards), encoding="utf-8", newline="\n")
     print(f"[OK] 已生成 {INDEX_FILE.relative_to(ROOT)}（{len(cards)} 张卡）")
     return 0
 

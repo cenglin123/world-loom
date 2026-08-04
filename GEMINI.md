@@ -108,4 +108,4 @@ Conventional Commit（`feat:`/`fix:`/`chore:`）。完成一卷或关键场景�
 python scripts/check_all.py --quiet
 ```
 
-无输出 = 全部通过。每条 FAIL 自带修复指引。机械层查不出的语义一致性走 §④ 复盘 converge 兜底。
+无输出 = 通过（`[提醒]`行非 FAIL）。每条 FAIL 自带修复指引。机械层查不出的语义一致性走 §④ 复盘 converge 兜底。
