@@ -41,7 +41,7 @@ def _save(data: dict):
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     DATA_FILE.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8"
+        encoding="utf-8", newline="\n"
     )
 
 def _key(a: str, b: str) -> str:
@@ -181,7 +181,7 @@ def cmd_regenerate():
         print("[WARN] 未找到 '## 关系矩阵（角色对摘要）' 段，请在 _索引.md 中添加该标题")
         sys.exit(1)
 
-    INDEX_FILE.write_text(new_text, encoding="utf-8")
+    INDEX_FILE.write_text(new_text, encoding="utf-8", newline="\n")
     print(f"[OK] 已重建 {INDEX_FILE} 的关系矩阵段（{len(data['pairs'])} 对关系）")
 
 def cmd_check() -> int:

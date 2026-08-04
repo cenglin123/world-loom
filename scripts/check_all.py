@@ -68,7 +68,7 @@ def check_remote_updates() -> str | None:
 
     # 先记账再联网：离线时也只在下一个间隔重试，不会每次运行都干等 fetch 超时
     try:
-        state.write_text(str(current), encoding="utf-8")
+        state.write_text(str(current), encoding="utf-8", newline="\n")
     except OSError:
         pass
 

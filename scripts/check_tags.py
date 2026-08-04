@@ -223,7 +223,7 @@ def cmd_regenerate():
         else:
             new_text = text + f"\n\n## 标签汇总\n{tag_block}\n"
 
-    INDEX_FILE.write_text(new_text, encoding="utf-8")
+    INDEX_FILE.write_text(new_text, encoding="utf-8", newline="\n")
     print(f"[OK] 已重建标签汇总段（{len(all_tags)} 个标签）")
 
 def cmd_index():
@@ -261,7 +261,7 @@ def cmd_index():
         else:
             new_text = f"## 角色清单\n{table}\n\n" + text
 
-    INDEX_FILE.write_text(new_text, encoding="utf-8")
+    INDEX_FILE.write_text(new_text, encoding="utf-8", newline="\n")
     print(f"[OK] 已重建角色清单表（{len(chars)} 个角色）")
 
 def cmd_wizard(char_name: str):
@@ -277,7 +277,7 @@ def cmd_wizard(char_name: str):
         template_text = template_file.read_text(encoding="utf-8")
         # 替换占位符
         new_text = template_text.replace("<角色名>", char_name)
-        char_file.write_text(new_text, encoding="utf-8")
+        char_file.write_text(new_text, encoding="utf-8", newline="\n")
         print(f"[OK] 已从模板创建 {char_file.relative_to(ROOT)}")
 
     fm = _parse_frontmatter(char_file)

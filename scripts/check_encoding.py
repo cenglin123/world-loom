@@ -11,9 +11,14 @@
 这类崩溃只在中文路径出现时才触发，本机不测中文就发现不了，且每写一个新的
 subprocess 调用都可能重新引入。所以用脚本兜，不靠记性。
 
-检查两类：
+同理，文本写入不指定 newline 时，Windows 会把 "\n" 翻成 "\r\n"，而本仓
+.gitattributes 规定 eol=lf——于是每次脚本改文件都让工作区与索引抖一轮
+CRLF/LF。写入一律 newline="\n"（读取不用管，通用换行本就该照单全收）。
+
+检查三类：
     1. subprocess.run/Popen/check_output 带 text=True 但无 encoding=
     2. open() / read_text() / write_text() 文本模式但无 encoding=（二进制模式豁免）
+    3. write_text() / open() 写模式无 newline=（二进制模式豁免）
 
 CLI：
     python scripts/check_encoding.py          # 扫 scripts/ 全部 .py
@@ -31,7 +36,11 @@ SCRIPT_DIR = ROOT / "scripts"
 PAT_SUBPROCESS = re.compile(r"subprocess\.(run|Popen|check_output)\s*\(")
 PAT_OPEN = re.compile(r"(?<![\w.])open\s*\(")
 PAT_READ_WRITE = re.compile(r"\.(read_text|write_text)\s*\(")
+PAT_WRITE_TEXT = re.compile(r"\.write_text\s*\(")
 BINARY_MODES = ('"rb"', "'rb'", '"wb"', "'wb'", '"ab"', "'ab'", '"r+b"', "'r+b'")
+# open() 的写模式——只有写才需要 newline=
+WRITE_MODES = ('"w"', "'w'", '"a"', "'a'", '"x"', "'x'", '"w+"', "'w+'",
+               '"a+"', "'a+'", '"r+"', "'r+'", '"x+"', "'x+'")
 
 
 def _call_block(src: str, open_paren_idx: int) -> str:
@@ -78,6 +87,20 @@ def scan(path: Path) -> list[str]:
                 f"    修复：补 encoding=\"utf-8\"（二进制请显式用 rb/wb）"
             )
 
+    writes = list(PAT_WRITE_TEXT.finditer(src))
+    writes += [m for m in PAT_OPEN.finditer(src)
+               if any(w in _call_block(src, m.end() - 1) for w in WRITE_MODES)]
+    for m in sorted(writes, key=lambda x: x.start()):
+        blk = _call_block(src, m.end() - 1)
+        if any(b in blk for b in BINARY_MODES):
+            continue
+        if "newline=" not in blk:
+            line = src[:m.start()].count("\n") + 1
+            issues.append(
+                f"{rel}:{line}  文本写入未指定 newline\n"
+                f"    修复：补 newline=\"\\n\"（Windows 默认会写成 CRLF，与 eol=lf 相冲）"
+            )
+
     return issues
 
 
@@ -90,12 +113,12 @@ def main(argv: list[str]) -> int:
         all_issues.extend(scan(t))
 
     if all_issues:
-        print(f"[FAIL] {len(all_issues)} 处编码未显式指定（中文 Windows 上会解码崩溃）：")
+        print(f"[FAIL] {len(all_issues)} 处文本 IO 未显式指定（中文 Windows 上解码崩溃 / 写出 CRLF）：")
         for i in all_issues:
             print(f"  {i}")
         return 1
 
-    print(f"[PASS] {len(targets)} 个脚本的编码均已显式指定")
+    print(f"[PASS] {len(targets)} 个脚本的编码与换行均已显式指定")
     return 0
 
 

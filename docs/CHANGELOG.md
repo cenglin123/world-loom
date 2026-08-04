@@ -48,6 +48,14 @@
 - 无上游时一次本地调用即返回，不联网也不动计数；先记账再联网，离线不会每次运行都干等 fetch 超时
 - _分发/AGENTS.md 完工必检口径改为「无输出 = 通过（`[提醒]`行非 FAIL）」——提醒不是失败，不影响退出码（388/400 词）
 
+### 脚本写文件统一 LF，check_encoding 增设换行维度
+
+#### 变更内容
+- 8 处 write_text 补 newline="\n"（changelog/relationship×2/method/check_tags×3/check_all）——Windows 文本模式默认把 \n 翻成 \r\n，与 .gitattributes 的 eol=lf 相冲，每次脚本改文件都让工作区抖一轮 CRLF
+- check_encoding.py 增设第三类检查：write_text 与 open 写模式缺 newline= → FAIL（读取与二进制豁免），新脚本再犯会被 pre-commit 挡下
+- [FAIL]/[PASS] 文案随之覆盖编码与换行两个维度
+
+
 
 
 
