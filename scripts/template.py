@@ -7,7 +7,8 @@ _模板/ 按原路径存放每个可填写文件的空白骨架。骨架与内�
 
 命令：
     check                     对照表：模板 → 内容文件是否存在、是否已填写
-    init                      缺失的内容文件从模板生成（绝不覆盖已存在文件）
+    init                      缺失的内容文件从模板生成（绝不覆盖已存在文件），
+                              并把 core.hooksPath 指向 .githooks 让钩子生效
     reset <路径...>           预览重置（不加 --force 只列出，不写入）
     reset --all --force       全部重置为模板 + 删除模板覆盖不到的内容层文件
                               （正文章节、角色卡、卷复盘、文风样本、已归档计划），
@@ -18,6 +19,7 @@ from __future__ import annotations
 import argparse
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -115,6 +117,45 @@ def cmd_check(_args) -> int:
     return 0
 
 
+def enable_git_hooks() -> str | None:
+    """把 core.hooksPath 指向 .githooks，返回一句结果说明（无需动作时返回 None）。
+
+    全新 clone 的 core.hooksPath 是空的，git 只看 .git/hooks/——仓库里带的三个
+    钩子（提交前校验、治理标记、推送闸门）于是一个都不跑，而文档却按"生效"在
+    引用它们。init 是用户的第一个动作，在这里挂载。
+
+    已有配置不覆盖：那是用户或别的工具有意设的，动它可能拆掉人家的东西。
+    """
+    hooks_dir = ROOT / ".githooks"
+    if not hooks_dir.is_dir():
+        return None
+    try:
+        proc = subprocess.run(
+            ["git", "config", "--local", "core.hooksPath"],
+            cwd=ROOT, capture_output=True, timeout=10,
+            text=True, encoding="utf-8", errors="replace",
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return None            # 没有 git / 不是仓库 → 静默放过
+    current = proc.stdout.strip() if proc.returncode == 0 else ""
+    if current == ".githooks":
+        return None
+    if current:
+        return (f"[INFO] core.hooksPath 已指向 {current}（非 .githooks），保持不动——"
+                f"如需启用本仓钩子：git config core.hooksPath .githooks")
+    try:
+        done = subprocess.run(
+            ["git", "config", "--local", "core.hooksPath", ".githooks"],
+            cwd=ROOT, capture_output=True, timeout=10,
+            text=True, encoding="utf-8", errors="replace",
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+    if done.returncode != 0:
+        return None
+    return "[OK] 已启用仓库钩子（core.hooksPath → .githooks）：提交前校验、治理标记、推送闸门现在生效"
+
+
 def cmd_init(_args) -> int:
     created = []
     for rel in _templates():
@@ -130,6 +171,9 @@ def cmd_init(_args) -> int:
             print(f"  + {c}")
     else:
         print("[OK] 无缺失产物，未改动任何文件")
+    hooks = enable_git_hooks()
+    if hooks:
+        print(hooks)
     return 0
 
 

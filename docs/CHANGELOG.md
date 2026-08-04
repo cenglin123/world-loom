@@ -2,6 +2,18 @@
 
 > 倒序排列，最新在前。操作：python scripts/changelog.py titles/show/add/recent
 
+## 2026-08-05
+
+### 分发版钩子生效性——init 挂载 + 新增检查器
+
+#### 变更内容
+- 全新 clone 的 core.hooksPath 为空，.githooks/ 三个钩子（pre-commit 校验、commit-msg 治理标记、pre-push 推送闸门）一个都不执行，而 AGENTS.md 与 _模板/README 按「生效」在引用它们——以为有保护，实际裸奔
+- template.py init 设置 core.hooksPath → .githooks（已有配置不覆盖，只提示），用户第一个动作即挂载
+- 新增 check_hooks.py（check_all 第 12 项「钩子」）：hooksPath 未设或指向别处 → FAIL；兜住没跑 init、配置被改的情况
+- docs/development.md 检查器清单十一项 → 十二项
+
+---
+
 ## 2026-08-04
 
 ### 文风吸纳纪律（使用层）

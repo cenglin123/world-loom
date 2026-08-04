@@ -141,6 +141,12 @@ CHECKS: list[tuple[str, list[str], str]] = [
         "；近重复 → 合并，或让两张卡的一句话与落点明确分开",
     ),
     (
+        "钩子",
+        ["scripts/check_hooks.py"],
+        "git config core.hooksPath .githooks——全新 clone 默认不启用，"
+        "提交校验/治理标记/推送闸门会全部失效",
+    ),
+    (
         "编码",
         ["scripts/check_encoding.py"],
         "源码缺 encoding=/newline= → 按提示补（中文 Windows 会解码崩溃、写出 CRLF）"
