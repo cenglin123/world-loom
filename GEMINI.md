@@ -11,7 +11,7 @@
 
 ## 初始化
 
-新克隆 / 内容缺失 → `template.py init`（不覆盖已有文件）；开新书 → `template.py reset --all --force`（旧内容仍在 git 历史里）。
+**动笔前先跑一次** `template.py init`——不覆盖已有文件，且负责启用仓库钩子（没跑 = 提交校验与推送闸门全失效）；开新书 → `template.py reset --all --force`（旧内容仍在 git 历史里）。
 
 **开始工作前** → `git fetch` 看远端有无更新，有则先 `git pull` 再动笔（`check_all.py` 每次运行末尾也会提醒；是否更新由你判断）。
 
