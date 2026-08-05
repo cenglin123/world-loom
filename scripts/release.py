@@ -67,6 +67,10 @@ def stage_commit(version: str) -> int | None:
     _run(["git", "add", "VERSION"])
     r = _run(["git", "commit", "-m", f"release: v{version}"])
     if r.returncode != 0:
+        # 续跑：VERSION 可能已是该版本并已提交（发版中断后重跑）
+        if _run(["git", "show", f"HEAD:VERSION"]).stdout.strip() == version:
+            print(f"[OK] 阶段 A：VERSION={version} 已在 HEAD（续跑跳过）")
+            return None
         print("[FAIL] VERSION 提交失败：")
         print(r.stdout + r.stderr)
         return 1
