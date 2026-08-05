@@ -18,6 +18,17 @@
 - 原措辞「新克隆 / 内容缺失 → template.py init」是条件式，文件已存在时 agent 会判定无需初始化而跳过——但 init 同时负责启用 core.hooksPath，跳过即等于钩子全程不生效
 - 改为「动笔前先跑一次」并点明后果（没跑 = 提交校验与推送闸门全失效），去掉条件从句后反而省下 1 词（387/400）
 
+### 分发 release + 更新机制（VERSION / update.py / release.py）
+
+#### 变更内容
+- 下游实际用法是从 GitHub 拿分发版开始，不是在本开发仓写。v0.1.0 已是 release，真正空白是「更新」——旧版写一半，新版怎么换工具不丢内容
+- VERSION（根，源码层）：随分发出去，update.py 靠它判版本
+- update.py（用户侧，分发）：覆盖工具层不动创作内容——zip 由 publish 剥过内容层，天然不碰正文/设定/文风样本；覆盖前全量备份 .backup-<旧>/；模板结构变更检测+提示（不自动合并填写）；支持 zip 路径 / 版本号自动下载 / 查最新
+- release.py（开发侧，layers.py 划内容层不分发）：一条龙——写VERSION提交 → publish --force → git archive template-dist → gh release create --target template-dist；release notes 人工准备（--notes-file）
+- template.py 抽 init_missing() 供 update.py 复用
+- 使用手册「更新到新版」节；_分发/README 锚点；_分发/AGENTS 工具更新指引；docs/development「发版」节
+
+
 
 ---
 

@@ -156,7 +156,12 @@ def enable_git_hooks() -> str | None:
     return "[OK] 已启用仓库钩子（core.hooksPath → .githooks）：提交前校验、治理标记、推送闸门现在生效"
 
 
-def cmd_init(_args) -> int:
+def init_missing() -> list[str]:
+    """把 _模板/ 下缺失的产物补齐（绝不覆盖已存在文件），返回新建清单。
+
+    无副作用以外的输出——供 update.py 复用：升级后补新版新增的模板。
+    cmd_init 负责打印与挂载钩子，这里只做文件复制。
+    """
     created = []
     for rel in _templates():
         target = ROOT / rel
@@ -165,6 +170,11 @@ def cmd_init(_args) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(TPL_DIR / rel, target)
         created.append(rel.as_posix())
+    return created
+
+
+def cmd_init(_args) -> int:
+    created = init_missing()
     if created:
         print("[OK] 从模板生成：")
         for c in created:

@@ -136,3 +136,17 @@ python scripts/publish.py              # dry-run，逐行核对清单
 ```
 
 重点看两件事：**开发层文件有没有混进清单**、**映射的三个文件名有没有正确出现**。链接那一头由 `CROSS` 检查兜底，不用手核。
+
+## 发版
+
+`scripts/release.py` 打 GitHub release（含 zip asset）。仅开发仓用（layers.py 把它划内容层，不分发）——下游拿 release zip 而非 clone，工具与创作从第一天起物理隔离，绕开 origin/私有仓那套。
+
+发版一条龙：
+
+```
+python scripts/release.py 0.2.0 --notes-file <草稿>
+```
+
+脚本串四步：① 写 `VERSION` 并提交 ② `publish.py --force` 推 `template-dist` → origin/main ③ `git archive template-dist` 打 zip ④ `gh release create --target template-dist` 挂 zip。`--target template-dist` 让 tag 落在分发 commit 上，GitHub 自动 Source code 才干净。
+
+`VERSION`（根目录，源码层）随分发出去——`scripts/update.py` 在用户侧靠它判断版本与升级。release notes 是诚实说明（已知边界、方法论来源），`--notes-file` 人工准备，脚本不自动生成。用户侧更新走 `update.py`（见使用手册「更新到新版」）：覆盖工具层、创作内容不动——zip 由 publish 剥过内容层，天然不碰正文/设定/文风样本。

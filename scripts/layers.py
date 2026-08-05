@@ -54,6 +54,7 @@ CONTENT_PATTERNS: tuple[str, ...] = (
     "docs/style-locked.md",
     # 开发层：造这套工具的过程，机制上等同内容层（都不分发）
     "docs/development.md",
+    "scripts/release.py",   # 仅开发仓发版用，下游不需要
     "AGENTS.md",
     "CLAUDE.md",
     "GEMINI.md",
