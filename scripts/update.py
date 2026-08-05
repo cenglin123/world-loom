@@ -31,7 +31,6 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from template import init_missing  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OWNER_REPO = "cenglin123/world-loom"
@@ -126,6 +125,20 @@ def read_zip_version(extract_root: Path, prefix: str) -> str:
     return f.read_text(encoding="utf-8").strip()
 
 
+def _post_update_init() -> list[str]:
+    """覆盖后补缺失模板。
+
+    reload template.py 拿新版 init_missing——避免启动时加载的旧 template.py
+    留在内存（跨版本升级时 init_missing 实现可能已变）。
+    """
+    import importlib
+    if "template" not in sys.modules:
+        import template  # noqa: F401
+    else:
+        importlib.reload(sys.modules["template"])
+    return sys.modules["template"].init_missing()
+
+
 def do_update(extract_root: Path, prefix: str, new_ver: str, old_ver: str) -> int:
     src_root = extract_root / prefix
     rels = [p.relative_to(src_root) for p in src_root.rglob("*") if p.is_file()]
@@ -150,8 +163,8 @@ def do_update(extract_root: Path, prefix: str, new_ver: str, old_ver: str) -> in
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, target)
 
-    # 补新版新增的模板实例（已有不覆盖）
-    created_tpl = init_missing()
+    # 补新版新增的模板实例（已有不覆盖）——reload 拿新版 template.py
+    created_tpl = _post_update_init()
 
     # 结构变更提示：对比备份的旧 _模板/ 与覆盖后的新 _模板/
     structural: list[str] = []

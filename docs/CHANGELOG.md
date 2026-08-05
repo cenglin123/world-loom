@@ -28,6 +28,19 @@
 - template.py 抽 init_missing() 供 update.py 复用
 - 使用手册「更新到新版」节；_分发/README 锚点；_分发/AGENTS 工具更新指引；docs/development「发版」节
 
+### 分发 release + 更新机制（VERSION/update.py/release.py）
+
+#### 变更内容
+- 用户的实际用法是从 GitHub 拿分发版开始写。v0.1.0 已是 release，「获取」已通，真正的空白是「更新」——release zip 是纯文件、无 origin，工具与创作从第一天起物理隔离。
+- VERSION（根目录，源码层）随分发：update.py 在用户侧靠它判版本
+- update.py（用户侧）：覆盖工具层不碰创作内容——zip 由 publish 剥过内容层，正文/设定/文风样本根本不在 zip 里；覆盖前备份到 .backup-<旧>/；三种输入（zip 路径 / 版本号自动下载 / 空查最新）；检测模板结构变更并提示补填
+- release.py（开发侧，layers.py 划内容层不分发）：publish --force → git archive template-dist → gh release create --target template-dist；tag 落分发 commit，GitHub 自动 Source code 也干净；--notes-file 人工准备诚实说明
+- template.py 抽 init_missing() 供 update.py 复用
+- 文档：使用手册「更新到新版」节 / _分发/README 锚点 / _分发/AGENTS 工具更新行 / docs/development「发版」节
+- 固有边界：模板结构变更不自动合并填写内容（命题撞车），只检测提示；0.1.0→0.2.0 是 bootstrap（update.py 尚不存在），下新版起自举
+- 端到端演练：0.2.0→0.3.0 升级，正文/设定原封不动、VERSION 升级、备份就位、结构变更正确提示
+
+
 
 
 ---
