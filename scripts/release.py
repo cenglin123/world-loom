@@ -96,10 +96,14 @@ def stage_archive(version: str, zip_path: Path) -> int | None:
 
 
 def stage_release(version: str, zip_path: Path, notes_file: Path) -> int | None:
+    # tag 落在 template-dist 指向的分发 commit（阶段 B 已推到 origin/main）。
+    # 用 SHA 而非分支名：远端没有 template-dist 分支（publish 推到 main），
+    # gh 用分支名会 422 target_commitish invalid。
+    target = _run(["git", "rev-parse", "template-dist"]).stdout.strip() or "main"
     r = _run([
         "gh", "release", "create", f"v{version}",
         str(zip_path),
-        "--target", "template-dist",
+        "--target", target,
         "--title", f"world-loom v{version}",
         "--notes-file", str(notes_file.resolve()),
         "--latest",
