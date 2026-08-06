@@ -55,6 +55,23 @@ python scripts/publish.py --force    # 真推
 - `publish.py` 设 `NOVEL_PUBLISH=1` 放行，且逐 ref 复核树内零内容层文件
 - 整仓推私有远端：`git push --no-verify`
 
+## 分支与远端拓扑
+
+记住一条：**本地两个分支，远端一个**。
+
+| 分支 | 在哪 | 是什么 |
+|------|------|--------|
+| `main` | 本地 + 远端 | **本地**：开发仓主线，源码层+内容层+开发层全在。**远端 `origin/main`**：只有 `publish.py` 推上去的纯源码层快照——下游 clone 拿到的就是这个 |
+| `template-dist` | **仅本地** | `publish.py` 构建的纯源码层分发树（剥内容层/开发层 + 映射 `_分发/`）。从不推到远端 |
+
+推送方向**只有一条**：`publish.py --force` 把本地 `template-dist` 推到 `origin/main`。由此：
+
+- 远端**没有** `template-dist` 分支
+- `origin/main` 的 tip = 最新分发 commit = 本地 `template-dist` 的 tip（同一 SHA）
+- 远端可达性判断（GitHub Source code、`gh release --target`、下游 clone）都基于 `origin/main`，不是 `template-dist`
+
+**陷阱**：`gh release create --target <commitish>` 的 commitish 必须远端可达。给 `template-dist`（分支名）→ 远端无此分支 → `422 target_commitish is invalid`。给 `template-dist` tip 的 **SHA**（已随 publish 到达 `origin/main`）或 `main` → 正确。`release.py` 因此用 SHA。
+
 ## 治理清单
 
 `.githooks/commit-msg` 的 `GOVERNANCE_FILES` 是唯一权威源。清单覆盖两类：
@@ -147,6 +164,6 @@ python scripts/publish.py              # dry-run，逐行核对清单
 python scripts/release.py 0.2.0 --notes-file <草稿>
 ```
 
-脚本串四步：① 写 `VERSION` 并提交 ② `publish.py --force` 推 `template-dist` → origin/main ③ `git archive template-dist` 打 zip ④ `gh release create --target template-dist` 挂 zip。`--target template-dist` 让 tag 落在分发 commit 上，GitHub 自动 Source code 才干净。
+脚本串四步：① 写 `VERSION` 并提交 ② `publish.py --force` 推 `template-dist` → origin/main ③ `git archive template-dist` 打 zip ④ `gh release create --target <SHA>` 挂 zip。tag 落在分发 commit 上——`--target` 为何用 SHA 而非分支名，见上方「分支与远端拓扑」。
 
 `VERSION`（根目录，源码层）随分发出去——`scripts/update.py` 在用户侧靠它判断版本与升级。release notes 是诚实说明（已知边界、方法论来源），`--notes-file` 人工准备，脚本不自动生成。用户侧更新走 `update.py`（见使用手册「更新到新版」）：覆盖工具层、创作内容不动——zip 由 publish 剥过内容层，天然不碰正文/设定/文风样本。
