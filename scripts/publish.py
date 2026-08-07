@@ -95,18 +95,35 @@ def _apply_dist_rewrites(env: dict) -> list[tuple[str, str]]:
     """按 DIST_TEXT_REWRITES 改写文件内容，再写回暂存区。
 
     返回 [(文件, 用途)]，供清单打印。
+
+    处理：文件不在 HEAD（首次发版 / 文件被删）→ 跳过；dev 文本不在原 blob
+    （上游已修过）→ 跳过；rewrite 后**不再** `update-index --remove`——
+    `--remove` 会从工作区重读 blob 覆盖我们刚写入的 cacheinfo，让改写失效。
+    `--add --cacheinfo` 本身已替换同名路径的 index 条目，无需 `--remove`。
     """
     import tempfile
     applied: list[tuple[str, str]] = []
     for path, dev_text, dist_text, purpose in DIST_TEXT_REWRITES:
-        sha = _git("rev-parse", f"HEAD:{path}", check=False).strip()
-        if not sha:
+        # 检查文件是否在 HEAD（_git 的 check=False 在 rev-parse 失败时仍返回 stdout echo）
+        rev = subprocess.run(
+            ["git", "-c", "core.quotepath=false", "rev-parse", f"HEAD:{path}"],
+            cwd=ROOT, capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        if rev.returncode != 0 or not rev.stdout.strip():
             continue  # 文件不在 HEAD，跳过（首次发版 / 文件被删）
-        blob = _git("cat-file", "blob", sha)
+        sha = rev.stdout.strip()
+        blob_proc = subprocess.run(
+            ["git", "-c", "core.quotepath=false", "cat-file", "blob", sha],
+            cwd=ROOT, capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        if blob_proc.returncode != 0:
+            continue  # blob 拿不到（极少见：损坏的仓库），跳过
+        blob = blob_proc.stdout
         if dev_text not in blob:
             continue  # dev 文本不在（可能上游已修过），跳过
         new = blob.replace(dev_text, dist_text, 1)
-        # 写到一个临时 blob → 写回暂存区
         with tempfile.NamedTemporaryFile("w", encoding="utf-8",
                                          newline=replace_placeholder,
                                          delete=False, suffix=".md") as tmp:
@@ -116,7 +133,8 @@ def _apply_dist_rewrites(env: dict) -> list[tuple[str, str]]:
             new_sha = _git("hash-object", "-w", "--path", path, tmp_path)
             _git("update-index", "--add", "--cacheinfo",
                  f"100644,{new_sha},{path}", env=env)
-            _git("update-index", "--remove", path, env=env)
+            # 注：不调 update-index --remove——它会从工作区重读 blob 覆盖
+            # cacheinfo，让改写失效。--add --cacheinfo 已替换同名路径条目。
             applied.append((path, purpose))
         finally:
             os.unlink(tmp_path)
