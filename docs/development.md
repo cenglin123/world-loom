@@ -139,7 +139,7 @@ subprocess 读取线程 UnicodeDecodeError → stdout 变 None → 调用方 Att
 
 ## 检查器清单
 
-`scripts/check_all.py` 的 `CHECKS` 是权威源，新增机械检查只改那一处。当前十二项：同步 / 模板 / 链接 / 伏笔 / 关系 / 标签 / 章节 / 文档 / 方法 / 钩子 / 编码 / 维护。
+`scripts/check_all.py` 的 `CHECKS` 是权威源，新增机械检查只改那一处。当前十三项：同步 / 模板 / 链接 / 伏笔 / 关系 / 标签 / 章节 / 文档 / 方法 / 钩子 / 编码 / 测试 / 维护。「测试」项由 `scripts/check_tests.py` 承载——下游分发版没有 `tests/`（开发层不分发），该项自动跳过。
 
 hook 只扫暂存区，`check_all.py` 扫全量工作区——互补，不重复。
 

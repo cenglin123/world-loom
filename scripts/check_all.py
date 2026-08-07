@@ -153,6 +153,12 @@ CHECKS: list[tuple[str, list[str], str]] = [
         "；工作区有 CRLF → python scripts/check_encoding.py --fix-eol",
     ),
     (
+        "测试",
+        ["scripts/check_tests.py"],
+        "python -m pytest tests/ -v 查看失败详情——管线测试守护分发防泄漏与发版流程，"
+        "失败说明 scripts/ 的改动破坏了既有保证（下游无 tests/ 时本项自动跳过）",
+    ),
+    (
         "维护",
         ["scripts/check_maintenance.py"],
         "派发维护子代理回写记忆/关系/演化（模板见 05_复盘/maintenance-executor.md）"

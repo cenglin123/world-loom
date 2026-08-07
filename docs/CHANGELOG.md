@@ -2,6 +2,15 @@
 
 > 倒序排列，最新在前。操作：python scripts/changelog.py titles/show/add/recent
 
+## 2026-08-07
+
+### 管线测试套件 + check_all 接入「测试」检查
+
+#### 变更内容
+- tests/ 为 publish/release 管线建 74 例测试：is_content 分类表（防内容泄漏的底层不变量）、update 纯函数（版本解析/zip 包裹检测）、分发树防泄漏 + DIST_MAP 映射 + blob 一致性、release --target 用 SHA（拦 422）、续跑幂等。集成测试统一拷进沙箱 git 仓以子进程跑，不触真仓、不触网（远端是本地 bare 仓，gh 用替身）。tests/ 划入开发层不分发；scripts/check_tests.py 包装成检查器，下游无 tests/ 时静默跳过。development.md 检查器清单十二项 → 十三项。
+
+---
+
 ## 2026-08-05
 
 ### 分发版钩子生效性——init 挂载 + 新增检查器
