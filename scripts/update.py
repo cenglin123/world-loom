@@ -8,6 +8,11 @@
 覆盖这些路径天然不碰你的创作内容（00_世界观/核心设定.md、03_正文/章节、
 docs/style-locked.md 等根本不在包里）。覆盖前还会全量备份到 .backup-<旧版本>/。
 
+第二道闸门：即便 zip 意外混入了内容层文件（publish bug / 包被篡改），
+覆盖前再用 layers.is_content() 复核一遍——命中则 fail-closed，不覆盖。
+合法分发映射（AGENTS.md / CLAUDE.md / GEMINI.md / README.md）来自
+分发源 `_分发/`，走 DIST_TARGETS 豁免；其它任何内容层路径都拒绝。
+
 用法：
     python scripts/update.py <zip路径>     用本地 release 包升级
     python scripts/update.py <版本号>       自动从 GitHub 下载该版本（如 0.2.0）
@@ -19,6 +24,7 @@ docs/style-locked.md 等根本不在包里）。覆盖前还会全量备份到 .
 from __future__ import annotations
 
 import argparse
+import importlib
 import io
 import json
 import os
@@ -31,6 +37,8 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from layers import DIST_TARGETS, is_content  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OWNER_REPO = "cenglin123/world-loom"
@@ -128,14 +136,15 @@ def read_zip_version(extract_root: Path, prefix: str) -> str:
 def _post_update_init() -> list[str]:
     """覆盖后补缺失模板。
 
-    reload template.py 拿新版 init_missing——避免启动时加载的旧 template.py
-    留在内存（跨版本升级时 init_missing 实现可能已变）。
+    按依赖顺序 reload update.py 加载过的模块——`layers` 在 `template` 之前。
+    新版 template.py 引用的新版 layers.py 符号必须可解析，不能因为
+    sys.modules 缓存的是旧 layers 而 ImportError（D3）。
     """
-    import importlib
-    if "template" not in sys.modules:
-        import template  # noqa: F401
-    else:
-        importlib.reload(sys.modules["template"])
+    for name in ("layers", "template"):
+        if name in sys.modules:
+            importlib.reload(sys.modules[name])
+        else:
+            __import__(name)
     return sys.modules["template"].init_missing()
 
 
@@ -143,30 +152,68 @@ def do_update(extract_root: Path, prefix: str, new_ver: str, old_ver: str) -> in
     src_root = extract_root / prefix
     rels = [p.relative_to(src_root) for p in src_root.rglob("*") if p.is_file()]
 
-    backup_dir = ROOT / f".backup-{old_ver}"
-    overwritten: list[str] = []
-    new_files: list[str] = []
-
-    # 先全量备份 + 覆盖
+    # PHASE 1: 预扫描整个 rels 列表（C4）。任何内容层 / `_分发/` 命中
+    # 立刻 fail-closed——失败时磁盘零变更，不留半升级状态。本阶段使用的
+    # is_content / DIST_TARGETS 是模块加载时的版本（fail-closed：新加的内容
+    # 层规则会被当作「可分发」，放行；这是已知偏严的边界）。
     for rel in rels:
         rel_posix = rel.as_posix()
+        if rel_posix.startswith("_分发/"):
+            raise SystemExit(
+                f"[FAIL] 拒绝升级：zip 含 _分发/ 残留 {rel_posix}\n"
+                f"    publish.py 应在打包前剥掉 _分发/——这是 publish 漏洞。\n"
+                f"    请不要继续升级；到 https://github.com/{OWNER_REPO}/issues 报告此问题。"
+            )
+        if is_content(rel_posix) and rel_posix not in DIST_TARGETS:
+            raise SystemExit(
+                f"[FAIL] 拒绝升级：zip 含内容层路径 {rel_posix}\n"
+                f"    release zip 里不应含内容层路径——publish.py 漏洞或包被篡改。\n"
+                f"    请不要继续升级；到 https://github.com/{OWNER_REPO}/issues 报告此问题。"
+            )
+
+    # PHASE 2: 一次性全量备份所有将被覆盖的目标（C1 / C3）。
+    backup_dir = ROOT / f".backup-{old_ver}"
+    if backup_dir.exists():
+        shutil.rmtree(backup_dir)
+    backup_dir.mkdir(parents=True)
+    for rel in rels:
         target = ROOT / rel
-        src = src_root / rel
-        if target.exists():
+        if target.is_file():
             b = backup_dir / rel
             b.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(target, b)
-            if target.read_bytes() != src.read_bytes():
-                overwritten.append(rel_posix)
-        else:
-            new_files.append(rel_posix)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, target)
 
-    # 补新版新增的模板实例（已有不覆盖）——reload 拿新版 template.py
+    # PHASE 3: 复制——单点失败就回滚到备份（C6）。C5 要求 VERSION
+    # 在所有写入之后才落地，所以这一步只动源文件 + 模板实例占位。
+    overwritten: list[str] = []
+    new_files: list[str] = []
+    try:
+        for rel in rels:
+            rel_posix = rel.as_posix()
+            target = ROOT / rel
+            src = src_root / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.is_file():
+                if target.read_bytes() != src.read_bytes():
+                    overwritten.append(rel_posix)
+            else:
+                new_files.append(rel_posix)
+            shutil.copyfile(src, target)
+    except Exception:
+        # 自动回滚：从备份还原已写入的、删除新建的。
+        for rel in rels:
+            target = ROOT / rel
+            b = backup_dir / rel
+            if b.is_file():
+                shutil.copyfile(b, target)
+            elif target.is_file():
+                target.unlink()
+        raise
+
+    # PHASE 4: 按依赖顺序 reload + 补缺失模板（D3）。
     created_tpl = _post_update_init()
 
-    # 结构变更提示：对比备份的旧 _模板/ 与覆盖后的新 _模板/
+    # PHASE 5: 结构变更提示——对比备份的旧 _模板/ 与覆盖后的新 _模板/。
     structural: list[str] = []
     for rel in rels:
         rel_posix = rel.as_posix()
@@ -184,6 +231,7 @@ def do_update(extract_root: Path, prefix: str, new_ver: str, old_ver: str) -> in
         except (OSError, UnicodeDecodeError):
             continue
 
+    # PHASE 6: VERSION 是最后一步（C5）——前面任何失败都让 VERSION 保持旧值。
     (ROOT / "VERSION").write_text(new_ver + "\n", encoding="utf-8", newline="\n")
 
     print(f"[OK] 已从 {old_ver if old_ver != '0.0' else '(0.1.0 前)'} 升级到 {new_ver}")

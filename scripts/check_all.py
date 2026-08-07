@@ -171,10 +171,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="机械校验总入口——无输出即通过")
     ap.add_argument("--quiet", action="store_true",
                     help="静默模式：只在有失败时输出（完工清单默认用这个）")
+    ap.add_argument("--runslow", action="store_true",
+                    help="运行标记为 slow 的测试（默认跳过；含跨版本 update 回归）")
     args = ap.parse_args()
 
     failed: list[tuple[str, str]] = []
     for name, cmd, guide in CHECKS:
+        if name == "测试" and args.runslow:
+            cmd = [*cmd, "--runslow"]
         proc = subprocess.run(
             [sys.executable, *cmd],
             cwd=ROOT,

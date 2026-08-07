@@ -13,9 +13,13 @@
 以干净环境跑，避免弄脏工作区：
 - PYTHONDONTWRITEBYTECODE=1   不产生 __pycache__
 - -p no:cacheprovider         不产生 .pytest_cache
+
+加 --runslow 启用 @pytest.mark.slow 标记的测试（含跨版本 update 回归），
+发版前由 release.py 自动传递。
 """
 from __future__ import annotations
 
+import argparse
 import os
 import subprocess
 import sys
@@ -26,6 +30,11 @@ TESTS_DIR = ROOT / "tests"
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(description="测试检查器——check_all 完工必检用")
+    ap.add_argument("--runslow", action="store_true",
+                    help="运行标记为 slow 的测试（默认跳过；含跨版本 update 回归）")
+    args = ap.parse_args()
+
     if not TESTS_DIR.is_dir():
         # 下游分发版没有 tests/（开发层不分发）——无需测试，直接通过
         return 0
@@ -40,9 +49,12 @@ def main() -> int:
     env = {**os.environ,
            "PYTHONDONTWRITEBYTECODE": "1",
            "PYTHONIOENCODING": "utf-8"}
+    cmd = [sys.executable, "-m", "pytest", "tests/",
+           "-q", "--color=no", "-p", "no:cacheprovider"]
+    if args.runslow:
+        cmd.append("--runslow")
     proc = subprocess.run(
-        [sys.executable, "-m", "pytest", "tests/",
-         "-q", "--color=no", "-p", "no:cacheprovider"],
+        cmd,
         cwd=str(ROOT), capture_output=True, text=True,
         encoding="utf-8", errors="replace", env=env,
     )
