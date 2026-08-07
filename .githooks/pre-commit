@@ -117,7 +117,8 @@ fi
 # 仅 _准备_ 缺失阻断；_审查_/_审查后_ 缺失提醒（过程合规质量交复盘 converge）。
 # 用户手写章节在 frontmatter 声明 author: human 即整体豁免。
 # 注意：commit-time 留痕兜底，对 --no-verify 无效、不覆盖会话期——真实性最终靠 §④ 复盘。
-TRUE_CHAPTERS=$(echo "$STAGED" | grep -E "^03_正文/第.+卷/第[^/]+章\.md$" || true)
+# 与章节就绪自检保持一致：要求位于 03_正文 下的子目录，且文件名为第X章.md。
+TRUE_CHAPTERS=$(echo "$STAGED" | grep -E "^03_正文/.*/第[^/]+章\.md$" || true)
 if [ -n "$TRUE_CHAPTERS" ]; then
     BLOCKERS=""
     REMINDERS=""

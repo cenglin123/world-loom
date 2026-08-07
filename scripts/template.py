@@ -7,8 +7,10 @@ _模板/ 按原路径存放每个可填写文件的空白骨架。骨架与内�
 
 命令：
     check                     对照表：模板 → 内容文件是否存在、是否已填写
-    init                      缺失的内容文件从模板生成（绝不覆盖已存在文件），
-                              并把 core.hooksPath 指向 .githooks 让钩子生效
+    init                      确保是 git 仓库（自动 git init），缺失的内容文件
+                              从模板生成（绝不覆盖已存在文件），把 core.hooksPath
+                              指向 .githooks 让钩子生效。**git init 是强制前置**——
+                              没有 .git/ 时钩子挂载是空操作，enforcement 层裸奔。
     reset <路径...>           预览重置（不加 --force 只列出，不写入）
     reset --all --force       全部重置为模板 + 删除模板覆盖不到的内容层文件
                               （正文章节、角色卡、卷复盘、文风样本、已归档计划），
@@ -117,8 +119,8 @@ def cmd_check(_args) -> int:
     return 0
 
 
-def enable_git_hooks() -> str | None:
-    """把 core.hooksPath 指向 .githooks，返回一句结果说明（无需动作时返回 None）。
+def enable_git_hooks() -> tuple[bool, str | None]:
+    """把 core.hooksPath 指向 .githooks，返回 (是否成功, 结果说明)。
 
     全新 clone 的 core.hooksPath 是空的，git 只看 .git/hooks/——仓库里带的三个
     钩子（提交前校验、治理标记、推送闸门）于是一个都不跑，而文档却按"生效"在
@@ -128,32 +130,86 @@ def enable_git_hooks() -> str | None:
     """
     hooks_dir = ROOT / ".githooks"
     if not hooks_dir.is_dir():
-        return None
+        return False, ".githooks/ 目录不存在"
     try:
         proc = subprocess.run(
             ["git", "config", "--local", "core.hooksPath"],
             cwd=ROOT, capture_output=True, timeout=10,
             text=True, encoding="utf-8", errors="replace",
         )
-    except (subprocess.TimeoutExpired, OSError):
-        return None            # 没有 git / 不是仓库 → 静默放过
+    except subprocess.TimeoutExpired:
+        return False, "读取 core.hooksPath 超时（10 秒）"
+    except OSError as exc:
+        return False, f"读取 core.hooksPath 失败：{exc}"
+    # rc=0 表示键存在；rc=1 + 空输出是「键未设置」——全新仓库默认就是这样。
     current = proc.stdout.strip() if proc.returncode == 0 else ""
+    if proc.returncode != 0 and (proc.stderr or "").strip():
+        return False, f"读取 core.hooksPath 失败：{(proc.stderr or proc.stdout).strip()}"
     if current == ".githooks":
-        return None
+        return True, None
     if current:
-        return (f"[INFO] core.hooksPath 已指向 {current}（非 .githooks），保持不动——"
-                f"如需启用本仓钩子：git config core.hooksPath .githooks")
+        return True, (f"[INFO] core.hooksPath 已指向 {current}（非 .githooks），保持不动——"
+                      f"如需启用本仓钩子：git config core.hooksPath .githooks")
     try:
         done = subprocess.run(
             ["git", "config", "--local", "core.hooksPath", ".githooks"],
             cwd=ROOT, capture_output=True, timeout=10,
             text=True, encoding="utf-8", errors="replace",
         )
-    except (subprocess.TimeoutExpired, OSError):
-        return None
+    except subprocess.TimeoutExpired:
+        return False, "写入 core.hooksPath 超时（10 秒）"
+    except OSError as exc:
+        return False, f"写入 core.hooksPath 失败：{exc}"
     if done.returncode != 0:
-        return None
-    return "[OK] 已启用仓库钩子（core.hooksPath → .githooks）：提交前校验、治理标记、推送闸门现在生效"
+        return False, f"写入 core.hooksPath 失败：{(done.stderr or done.stdout).strip()}"
+    try:
+        verify = subprocess.run(
+            ["git", "config", "--local", "core.hooksPath"],
+            cwd=ROOT, capture_output=True, timeout=10,
+            text=True, encoding="utf-8", errors="replace",
+        )
+    except subprocess.TimeoutExpired:
+        return False, "复核 core.hooksPath 超时（10 秒）"
+    except OSError as exc:
+        return False, f"复核 core.hooksPath 失败：{exc}"
+    if verify.returncode != 0:
+        return False, f"复核 core.hooksPath 失败：{(verify.stderr or verify.stdout).strip()}"
+    actual = verify.stdout.strip()
+    if actual != ".githooks":
+        return False, f"复核失败：core.hooksPath 实为 {actual or '未设置'}，与写入值 .githooks 不一致"
+    return True, "[OK] 已启用仓库钩子（core.hooksPath → .githooks）：提交前校验、治理标记、推送闸门现在生效"
+
+
+def ensure_git_repo() -> tuple[bool, str | None]:
+    """确保 ROOT 是 git 仓库——钩子挂载要求 .git/ 存在。
+
+    release zip 由 `git archive template-dist` 产生，不含 .git/。若不解压
+    后跑 git init 就直接 template.py init：
+    - 模板产物照常生成（init_missing 不依赖 git）
+    - enable_git_hooks 静默失败（`git config` 在非仓库上无 op）
+    - 用户看到「已生成 XX」+「无任何钩子提示」，以为生效
+    - 实际：pre-commit / commit-msg / pre-push 三个钩子全部裸奔——enforcement
+      层从源头上关掉，比 update 机制任何漏洞都更基础。
+
+    因此 init 是 git init 的强制前置。
+
+    返回 (ok, 信息消息)。ok=False 时调用方应中止（enforcement 已无意义）。
+    """
+    if (ROOT / ".git").exists():
+        return True, None  # 已经是仓库，不动
+    try:
+        proc = subprocess.run(
+            ["git", "init", "-q"],
+            cwd=ROOT, capture_output=True, timeout=10,
+            text=True, encoding="utf-8", errors="replace",
+        )
+    except FileNotFoundError:
+        return False, "[FAIL] git 未安装。请安装 git 后重试 template.py init。"
+    except subprocess.TimeoutExpired:
+        return False, "[FAIL] git init 超时（10 秒）。请稍后再试。"
+    if proc.returncode != 0:
+        return False, f"[FAIL] git init 失败：{(proc.stderr or proc.stdout).strip()}"
+    return True, "[OK] 已 git init（此前是裸目录；钩子挂载现在生效）"
 
 
 def init_missing() -> list[str]:
@@ -174,6 +230,14 @@ def init_missing() -> list[str]:
 
 
 def cmd_init(_args) -> int:
+    # git init 是强制前置：没有 .git/ 时钩子挂载是空操作，
+    # 整个 enforcement 层会裸奔。
+    ok, info = ensure_git_repo()
+    if info:
+        print(info)
+    if not ok:
+        return 1  # 不继续生成产物——enforcement 已失败，沉默继续更危险
+
     created = init_missing()
     if created:
         print("[OK] 从模板生成：")
@@ -182,8 +246,11 @@ def cmd_init(_args) -> int:
     else:
         print("[OK] 无缺失产物，未改动任何文件")
     hooks = enable_git_hooks()
-    if hooks:
-        print(hooks)
+    if hooks[1]:
+        print(hooks[1])
+    if not hooks[0]:
+        print(f"[FAIL] 钩子挂载失败：{hooks[1]}")
+        return 1
     return 0
 
 

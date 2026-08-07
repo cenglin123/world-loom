@@ -75,8 +75,79 @@ def _apply_dist_map(env: dict) -> dict[str, str]:
     return mapped
 
 
-def build_dist_tree() -> tuple[str, list[str], list[str], dict[str, str]]:
-    """返回 (tree_sha, 公开文件清单, 被排除的内容层清单, {目标: 来源})。"""
+# 分发时需要做的**源码层文本替换**——开发仓与下游用户侧行为不同的项。
+# 单一源（dev）写明差异，publish.py 推送到下游时抹平。
+# 每条：(文件, dev 文本, dist 文本, 用途说明)
+DIST_TEXT_REWRITES: tuple[tuple[str, str, str, str], ...] = (
+    # B-4：开发仓 check_all 把 check_hooks 当作「不应裸奔」的硬门（--strict）；
+    # 下游用户场景可能未跑 init（无 .githooks/），应保持 SKIP 体验，故分发时
+    # 把 --strict 替换成空。
+    (
+        "scripts/check_all.py",
+        '["scripts/check_hooks.py", "--strict"]',
+        '["scripts/check_hooks.py"]',
+        "B-4：开发仓严格 / 下游宽松",
+    ),
+)
+
+
+def _apply_dist_rewrites(env: dict) -> list[tuple[str, str]]:
+    """按 DIST_TEXT_REWRITES 改写文件内容，再写回暂存区。
+
+    返回 [(文件, 用途)]，供清单打印。
+
+    处理：文件不在 HEAD（首次发版 / 文件被删）→ 跳过；dev 文本不在原 blob
+    （上游已修过）→ 跳过；rewrite 后**不再** `update-index --remove`——
+    `--remove` 会从工作区重读 blob 覆盖我们刚写入的 cacheinfo，让改写失效。
+    `--add --cacheinfo` 本身已替换同名路径的 index 条目，无需 `--remove`。
+    """
+    import tempfile
+    applied: list[tuple[str, str]] = []
+    for path, dev_text, dist_text, purpose in DIST_TEXT_REWRITES:
+        # 检查文件是否在 HEAD（_git 的 check=False 在 rev-parse 失败时仍返回 stdout echo）
+        rev = subprocess.run(
+            ["git", "-c", "core.quotepath=false", "rev-parse", f"HEAD:{path}"],
+            cwd=ROOT, capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        if rev.returncode != 0 or not rev.stdout.strip():
+            continue  # 文件不在 HEAD，跳过（首次发版 / 文件被删）
+        sha = rev.stdout.strip()
+        blob_proc = subprocess.run(
+            ["git", "-c", "core.quotepath=false", "cat-file", "blob", sha],
+            cwd=ROOT, capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        if blob_proc.returncode != 0:
+            continue  # blob 拿不到（极少见：损坏的仓库），跳过
+        blob = blob_proc.stdout
+        if dev_text not in blob:
+            continue  # dev 文本不在（可能上游已修过），跳过
+        new = blob.replace(dev_text, dist_text, 1)
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8",
+                                         newline=replace_placeholder,
+                                         delete=False, suffix=".md") as tmp:
+            tmp.write(new)
+            tmp_path = tmp.name
+        try:
+            new_sha = _git("hash-object", "-w", "--path", path, tmp_path)
+            _git("update-index", "--add", "--cacheinfo",
+                 f"100644,{new_sha},{path}", env=env)
+            # 注：不调 update-index --remove——它会从工作区重读 blob 覆盖
+            # cacheinfo，让改写失效。--add --cacheinfo 已替换同名路径条目。
+            applied.append((path, purpose))
+        finally:
+            os.unlink(tmp_path)
+    return applied
+
+
+# 用平台无关的换行符常量；publish 树里文本文件应统一 LF。
+# 但我们改的是脚本源码（check_all.py），python 源码 LF 即可。
+replace_placeholder = "\n"
+
+
+def build_dist_tree() -> tuple[str, list[str], list[str], dict[str, str], list[tuple[str, str]]]:
+    """返回 (tree_sha, 公开文件清单, 被排除的内容层清单, {目标: 来源}, 分发重写列表)。"""
     env = {"GIT_INDEX_FILE": PUBLISH_INDEX}
     _git("read-tree", "HEAD", env=env)
 
@@ -89,10 +160,11 @@ def build_dist_tree() -> tuple[str, list[str], list[str], dict[str, str]]:
                  *content[i:i + 200], env=env)
 
     mapped = _apply_dist_map(env)
+    rewrites = _apply_dist_rewrites(env)
 
     tree = _git("write-tree", env=env)
     published = [f for f in _git("ls-files", env=env).splitlines() if f]
-    return tree, published, content, mapped
+    return tree, published, content, mapped, rewrites
 
 
 def main() -> int:
@@ -113,7 +185,7 @@ def main() -> int:
         print("\n".join("    " + ln for ln in dirty.splitlines()[:15]))
         return 1
 
-    tree, published, excluded, mapped = build_dist_tree()
+    tree, published, excluded, mapped, rewrites = build_dist_tree()
 
     # —— 硬复核 1：树里绝不能有内容层/开发层文件 ——
     # 映射产生的路径豁免：它们的内容来自 _分发/（源码层），只是借用了内容层的路径名。
@@ -137,6 +209,10 @@ def main() -> int:
     for f in published:
         tag = f"   ← 由 {mapped[f]} 映射" if f in mapped else ""
         print(f"  + {f}{tag}")
+    if rewrites:
+        print(f"\n分发时改写 {len(rewrites)} 个文件（dev/dist 行为差异）：")
+        for path, purpose in rewrites:
+            print(f"  ~ {path}  （{purpose}）")
     print(f"\n已排除 {len(excluded)} 个内容层/开发层文件（正文/角色/世界观填写/"
           f"开发规范等，一个都不会出去）")
 
