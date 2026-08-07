@@ -189,3 +189,31 @@ def install_fake_gh(repo: Path, tmp_path: Path) -> tuple[dict, Path]:
     env = {"PATH": f"{stub}{os.pathsep}{os.environ['PATH']}",
            "FAKE_GH_LOG": str(log)}
     return env, log
+
+
+# ── 慢测试机制 ─────────────────────────────────────────────
+
+# slow 测试（需联网/重资源）默认跳过，加 --runslow 启用。
+# 守护的是「跨版本自举」等关键回归——不该每次完工必检都跑，
+# 但发版前/重构 update.py 后值得显式跑一遍。
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--runslow", action="store_true", default=False,
+        help="运行标记为 slow 的测试（默认跳过；含跨版本 update 回归）",
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "slow: marks tests as slow (use --runslow to run)"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        return
+    skip_slow = pytest.mark.skip(reason="slow test, use --runslow to enable")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)

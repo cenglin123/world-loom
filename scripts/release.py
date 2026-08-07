@@ -21,6 +21,7 @@ release notes 是诚实说明（已知边界、方法论来源等判断），由
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -48,7 +49,7 @@ def stage_preflight(skip_checks: bool) -> int | None:
         print(st.stdout)
         return 1
     if not skip_checks:
-        chk = _run([sys.executable, "scripts/check_all.py", "--quiet"])
+        chk = _run([sys.executable, "scripts/check_all.py", "--quiet", "--runslow"])
         out = (chk.stdout + chk.stderr).strip()
         if out:
             print("[FAIL] check_all 有输出（章节 FAIL 在未写作仓正常，其它项请修复）：")
@@ -121,6 +122,38 @@ def stage_release(version: str, zip_path: Path, notes_file: Path) -> int | None:
     return None
 
 
+def stage_validate_candidate(zip_path: Path) -> int | None:
+    """用 v0.2.0 的 update.py 验证本次候选 zip 能正确应用。
+
+    比 stage_archive 晚、比 stage_release 早——必须通过才能进 release。
+    不可跳过：--skip-checks 不影响此 stage（E4 / E5：候选 zip 验证是
+    release.py 的独立闸门，不在 check_all 内）。
+
+    沙箱/裸环境里 tests/ 不存在时跳过——与 check_tests.py 策略一致，
+    真实发版场景下 tests/ 必然存在（它在仓库里且 release.py 从仓库根跑）。
+    """
+    candidate_test = ROOT / "tests" / "test_update_cross_version.py"
+    if not candidate_test.is_file():
+        print(f"[SKIP] 阶段 C-2：{candidate_test} 不存在，跳过候选 zip 验证"
+              f"（开发仓发版时该文件必然存在——否则是仓库结构异常）")
+        return None
+    print("[..] 阶段 C-2：用 v0.2.0 update.py 验证候选 zip…")
+    env = {**os.environ, "WL_UPDATE_CANDIDATE_ZIP": str(zip_path)}
+    r = subprocess.run(
+        [sys.executable, "-m", "pytest",
+         "tests/test_update_cross_version.py::test_v0200_update_can_apply_latest_zip",
+         "--runslow", "-v", "--tb=short", "-p", "no:cacheprovider"],
+        cwd=ROOT, capture_output=True, text=True,
+        encoding="utf-8", errors="replace", env=env,
+    )
+    if r.returncode != 0:
+        print("[FAIL] 候选 zip 跨版本回归未通过——中止发版")
+        print((r.stdout + r.stderr).strip())
+        return 1
+    print("[OK] 候选 zip 经 v0.2.0 update.py 应用成功——可发版")
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="打 GitHub release（开发侧，不分发）")
     p.add_argument("version", help="版本号 X.Y.Z（须大于 0.1.0）")
@@ -147,6 +180,8 @@ def main(argv: list[str] | None = None) -> int:
 
     zip_path = Path(tempfile.gettempdir()) / f"world-loom-v{args.version}.zip"
     if (rc := stage_archive(args.version, zip_path)) is not None:
+        return rc
+    if (rc := stage_validate_candidate(zip_path)) is not None:
         return rc
     if (rc := stage_release(args.version, zip_path, notes)) is not None:
         return rc
