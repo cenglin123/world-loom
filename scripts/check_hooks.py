@@ -20,6 +20,7 @@ CLI：
 """
 from __future__ import annotations
 
+import argparse
 import subprocess
 import sys
 from pathlib import Path
@@ -44,13 +45,26 @@ def _git(*args: str) -> str | None:
     return proc.stdout.strip()
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, add_help=True)
+    ap.add_argument("--strict", action="store_true",
+                    help="开发仓用：缺 .githooks/ 或非 git 仓库时返回 1（FAIL），"
+                         "而非静默 SKIP——防有人误删 .githooks/ 后 enforcement 裸奔")
+    args = ap.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
 
     if not HOOKS_DIR.is_dir():
+        msg = ".githooks/ 缺失——hooks 不生效"
+        if args.strict:
+            print(f"[FAIL] {msg}")
+            return 1
         print("[SKIP] 无 .githooks/ 目录")
         return 0
     if _git("rev-parse", "--git-dir") is None:
+        msg = "不是 git 仓库（或 git 不可用）——hooks 不会跑"
+        if args.strict:
+            print(f"[FAIL] {msg}")
+            return 1
         print("[SKIP] 不是 git 仓库（或 git 不可用）")
         return 0
 

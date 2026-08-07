@@ -149,6 +149,24 @@ def _blob(ref: str, path: str) -> str:
     return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
+def _published_source_ref() -> str:
+    # 取发布源 ref——verify-tree 用它读取 `_分发/AGENTS.md` 等映射源 blob。
+    # 不能用字面 HEAD：工作分支若改了 `_分发/` 或删了它，源 blob 必然与
+    # 发布版 AGENTS.md 不等，每个 DIST_TARGETS 都会假阳性 FAIL，逼用户
+    # `--no-verify` 绕开推送闸门。
+    # 优先级：main tip（仍含 `_分发/`）→ template-dist tip → HEAD 兜底
+    # （首次发版前的 first-release 场景）。
+    for candidate in ("refs/heads/main^{commit}", "refs/heads/template-dist^{commit}"):
+        proc = subprocess.run(
+            ["git", "rev-parse", "--verify", candidate],
+            cwd=str(ROOT), capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        if proc.returncode == 0:
+            return proc.stdout.strip()
+    return "HEAD"
+
+
 def cmd_verify_tree(argv: list[str]) -> int:
     """断言某个 git 树/提交里不含任何内容层文件——推送闸门的最后一道复核。
 
@@ -161,6 +179,7 @@ def cmd_verify_tree(argv: list[str]) -> int:
     ref = argv[0]
     files = tree_files(ref)
 
+    source_ref = _published_source_ref()
     leaked: list[str] = []
     for f in files:
         if f.startswith(f"{DIST_DIR}/"):
@@ -172,7 +191,7 @@ def cmd_verify_tree(argv: list[str]) -> int:
         if src is None:
             leaked.append(f)
             continue
-        if _blob(ref, f) != _blob("HEAD", src):
+        if _blob(ref, f) != _blob(source_ref, src):
             leaked.append(f"{f}（内容与 {src} 不一致——疑似开发版泄漏）")
     if leaked:
         print(f"[BLOCK] {ref[:12]} 的树里含 {len(leaked)} 个内容层文件，拒绝推送：")

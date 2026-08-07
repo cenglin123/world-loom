@@ -142,7 +142,7 @@ CHECKS: list[tuple[str, list[str], str]] = [
     ),
     (
         "钩子",
-        ["scripts/check_hooks.py"],
+        ["scripts/check_hooks.py", "--strict"],
         "git config core.hooksPath .githooks——全新 clone 默认不启用，"
         "提交校验/治理标记/推送闸门会全部失效",
     ),
