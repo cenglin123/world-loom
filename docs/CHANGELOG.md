@@ -2,6 +2,15 @@
 
 > 倒序排列，最新在前。操作：python scripts/changelog.py titles/show/add/recent
 
+## 2026-08-14
+
+### denova 借鉴落地：事实分仓 + 伏笔表回收钩子 + reviewer keep + fail-forward + 开写即冻结
+
+#### 变更内容
+- 经异构评审收敛后落地五项：_分发/AGENTS.md 新增「事实分仓」硬约束；伏笔登记表 7→9 列（触发条件/回收方式与后果）并同步脚本与 README；reviewer 输出新增 keep 段；writing-style 故事驱动法则补第 7 条「失败不堵死剧情」；_模板/README 明确「开写即冻结」。上下文管理（产品运行时层）明确不采纳。
+
+---
+
 ## 2026-08-07
 
 ### 管线测试套件 + check_all 接入「测试」检查
