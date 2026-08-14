@@ -49,6 +49,9 @@ hard_blocks:
 soft_blocks:
   - id: S1
     description: "<具体描述>"
+keep:
+  - id: K1
+    description: "<该保留的强段落/有效节点，不是赞扬>"
 flags:
   - id: F1
     description: "<观察项>"

@@ -3,6 +3,7 @@
 检查项：
   - Markdown 表格结构完整性（列数）
   - 状态字段合法值（open / closed / abandoned）
+  - open 缺「触发条件」/「回收方式与后果」（回收钩子缺失）
   - open 超期检测（埋下后超过阈值未收）
   - closed 缺实际回收位置
   - ID 格式合法性
@@ -16,6 +17,9 @@ CLUE_FILE = Path(__file__).resolve().parent.parent / "04_伏笔" / "伏笔登记
 OPEN_STALE_CHAPTERS = 20  # open 超过 N 章未收 → 报警
 USED_STALE_CHAPTERS = 15  # open 超过 M 章从未被提及 → 提示尽快用掉
 
+REQUIRED_COLS = ["ID", "描述", "埋下位置（卷/章）", "触发条件", "预计回收位置",
+                 "回收方式与后果", "实际回收位置", "状态", "备注"]
+
 def parse_chapter(ch: str) -> int | None:
     """解析 '3/10' 或 '1' 格式的章节号，返回绝对章节序号。模糊时序返回 None。"""
     ch = ch.strip()
@@ -28,6 +32,11 @@ def parse_chapter(ch: str) -> int | None:
         return int(parts[0]) * 1000
     except (ValueError, IndexError):
         return None
+
+def _get(cols: list[str], col_map: dict[str, int], name: str) -> str:
+    """按列名取值，缺列或越界返回空串。"""
+    idx = col_map.get(name)
+    return cols[idx] if idx is not None and idx < len(cols) else ""
 
 def main() -> int:
     if not CLUE_FILE.exists():
@@ -44,24 +53,31 @@ def main() -> int:
         print("[PASS] 伏笔登记表为空（仅有表头+分隔行）")
         return 0
 
-    # 解析表头
+    # 解析表头，建 列名→索引 映射
     header = [c.strip() for c in rows[0].split("|")[1:-1]]
-    expected_cols = ["ID", "描述", "埋下位置（卷/章）", "预计回收位置", "实际回收位置", "状态", "备注"]
-    if len(header) < 6:
-        print(f"[FAIL] 伏笔表列数不足：期望 ≥6，实际 {len(header)}")
+    missing = [n for n in REQUIRED_COLS if n not in header]
+    if missing:
+        print(f"[FAIL] 伏笔表缺列：{missing}")
         return 1
+    col_map = {name: idx for idx, name in enumerate(header)}
 
     issues = 0
     data_rows = rows[2:]  # 跳过表头+分隔行
 
     for i, row in enumerate(data_rows):
         cols = [c.strip() for c in row.split("|")[1:-1]]
-        if len(cols) < 6:
+        if len(cols) < len(REQUIRED_COLS):
             print(f"[WARN] 行 {i+1} 列数不足")
             issues += 1
             continue
 
-        cid, desc, buried, expected, actual, status, *_ = cols
+        cid = _get(cols, col_map, "ID")
+        desc = _get(cols, col_map, "描述")
+        buried = _get(cols, col_map, "埋下位置（卷/章）")
+        trigger = _get(cols, col_map, "触发条件")
+        recovery = _get(cols, col_map, "回收方式与后果")
+        actual = _get(cols, col_map, "实际回收位置")
+        status = _get(cols, col_map, "状态")
 
         # 跳过示例行（F001 且标记为示例）
         if cid == "F001" and "示例" in desc:
@@ -80,8 +96,16 @@ def main() -> int:
             print(f"[WARN] {cid}: 状态非法值 '{status}'（允许: open/closed/abandoned）")
             issues += 1
 
-        # open → 检查超期
+        # open → 触发条件 + 回收方式与后果 必填（回收钩子，避免悬空）
         if status == "open":
+            if not trigger or trigger in ("—", "-", "待填"):
+                print(f"[WARN] {cid}: open 但缺「触发条件」（何时激活进剧情）")
+                issues += 1
+            if not recovery or recovery in ("—", "-", "待填"):
+                print(f"[WARN] {cid}: open 但缺「回收方式与后果」（如何兑现）")
+                issues += 1
+
+            # open → 检查超期
             buried_ch = parse_chapter(buried)
             if buried_ch is None:
                 print(f"[INFO] {cid}: 埋下位置为模糊时序（'{buried}'），无法机械判超期，需人工审查")

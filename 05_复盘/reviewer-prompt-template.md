@@ -53,6 +53,9 @@ soft_blocks:
     description: "<具体描述>"
     location: "<章节/段落>"
     severity: <高|中|低>
+keep:
+  - id: K1
+    description: "<该保留的强段落/有效节点，不是赞扬>"
 flags:
   - id: F1
     description: "<观察项>"
@@ -63,6 +66,7 @@ flags:
 2. 每条阻断必须指定 violated_rule（不能写"感觉不对"）
 3. 不要因为"正文看起来不错"就降低审查强度
 4. 你只审，不修——不要提"改成 X"，说"Y 处存在问题"
+5. `keep` 只标"该保留什么"，不是赞扬
 ```
 
 ---
