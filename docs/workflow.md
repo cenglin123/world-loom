@@ -47,7 +47,7 @@
 - 博弈场景（有效博弈方 ≥ 2 且目标冲突）：可尝试角色扮演，标为实验性
 - 单人+环境对抗 / 内心冲突：直接写 + [[docs/audit-checklist]] 对应维度 rubric
 
-**审**：产出后 spawn 独立 reviewer，只注入上下文包 + 产出正文，**不含写作 agent 的推理过程**。按 [[docs/audit-checklist]] 小说专项审计 + [[docs/writing-style]] 可读性技法。
+**审**：产出后 spawn 独立 reviewer，只注入上下文包 + 产出正文，**不含写作 agent 的推理过程**。素材默认按路径清单注入（见 [[05_复盘/reviewer-prompt-template]]）——reviewer 从磁盘读取，主对话不复制文本。按 [[docs/audit-checklist]] 小说专项审计 + [[docs/writing-style]] 可读性技法。
 
 0 阻断项且 flag ≤ 2 → 通过；不通过 → 修复 → 二审，最多 3 轮。结论写入 `_工作/_审查后_第M章.md`（schema 见 [[docs/frontmatter-schemas]]）。启动模板：[[05_复盘/reviewer-prompt-template]]。
 

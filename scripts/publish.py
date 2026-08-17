@@ -13,6 +13,7 @@
 
 用法：
     python scripts/publish.py                    # 预览：列出将公开的文件，不推送
+    python scripts/publish.py --summary          # 预览：只打印统计与映射，不逐行列出
     python scripts/publish.py --force            # 真的推送到 origin/main
     python scripts/publish.py --force --remote upstream --branch main
 """
@@ -173,6 +174,8 @@ def main() -> int:
     ap.add_argument("--remote", default="origin", help="目标远端，默认 origin")
     ap.add_argument("--branch", default="main", help="目标分支，默认 main")
     ap.add_argument("-m", "--message", default=None, help="分发提交信息")
+    ap.add_argument("--summary", action="store_true",
+                    help="只打印统计与映射，不逐行列出全部文件")
     args = ap.parse_args()
 
     head = _rev("HEAD")
@@ -206,9 +209,15 @@ def main() -> int:
         return 1
 
     print(f"将公开 {len(published)} 个源码层文件：")
-    for f in published:
-        tag = f"   ← 由 {mapped[f]} 映射" if f in mapped else ""
-        print(f"  + {f}{tag}")
+    if args.summary:
+        top = sorted({f.split("/")[0] for f in published})
+        print("  顶层目录：" + "、".join(top))
+        for tgt, src in sorted(mapped.items()):
+            print(f"  + {tgt}  ← 由 {src} 映射")
+    else:
+        for f in published:
+            tag = f"   ← 由 {mapped[f]} 映射" if f in mapped else ""
+            print(f"  + {f}{tag}")
     if rewrites:
         print(f"\n分发时改写 {len(rewrites)} 个文件（dev/dist 行为差异）：")
         for path, purpose in rewrites:

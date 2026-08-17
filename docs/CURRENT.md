@@ -22,5 +22,6 @@
 
 ## 关联计划
 
+- [[docs/plans/active/20260818-卷级审计分维降本]] —— 进行中：卷末 converge 续轮改增量注入；执行前先走一轮 converge 评议
 - [[docs/plans/completed/20260803-文风吸纳纪律]] —— 已完成，使用层制度：用户给样本要求模仿文风时的存放/授权/复核规矩
 - [[docs/plans/completed/20260803-方法卡库]] —— 已完成；后续下沉见 [[docs/plans/deferred/20260803-方法论下沉批次二]]

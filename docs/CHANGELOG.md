@@ -2,6 +2,20 @@
 
 > 倒序排列，最新在前。操作：python scripts/changelog.py titles/show/add/recent
 
+## 2026-08-18
+
+### token 精简（A/C/D/E）+ 卷级审计分维计划
+
+#### 变更内容
+- 审理素材默认改路径清单注入：reviewer 从磁盘读取，主对话不复制文本（reviewer-protocol + reviewer-prompt-template，05_复盘 与 _模板 成对同步；workflow §③ 同步指引）
+- 根 AGENTS.md「三层结构/分发机制」压缩为指针式，细节唯一落在 docs/development.md
+- docs/plans/README 与 05_复盘/README 补「归档不整读、按需检索」惯例
+- publish.py 新增 --summary：只打印统计与映射，不逐行列清单
+- 两份 AGENTS.md 文档维护原则补「检索排除 _模板/ 与 example_world/」惯例
+- 新计划落盘：docs/plans/active/20260818-卷级审计分维降本.md（续轮增量注入，执行前走一轮 converge 评议）
+
+---
+
 ## 2026-08-14
 
 ### denova 借鉴落地：事实分仓 + 伏笔表回收钩子 + reviewer keep + fail-forward + 开写即冻结
