@@ -57,7 +57,7 @@
 
 **机械层**：`python scripts/check_all.py`
 
-**语义层**：按 [[05_复盘/reviewer-protocol]] 执行——spawn reviewer → 全量审计 → executor 修复 → 零硬阻断可收敛。
+**语义层**：按 [[05_复盘/reviewer-protocol]] 执行——spawn reviewer → 首轮全量、续轮增量审计 → executor 修复 → 零硬阻断可收敛。
 
 硬阻断四类：世界观违反 / 人设违反 / 伏笔悬空 / 时间线倒流。最多 5 轮，同阻断源 ≥3 次振荡硬停。
 
