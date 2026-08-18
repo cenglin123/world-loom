@@ -102,6 +102,7 @@ Conventional Commit（`feat:`/`fix:`/`chore:`）。完成一卷或关键场景�
 3. **只记正文里读不出来的东西**：世界观、大纲、人物内核、设计决策
 4. **CHANGELOG**：用 `python scripts/changelog.py titles/show/add/recent`，不读全文
 5. **计划落盘**：跨卷/多角色的任务在 `docs/plans/active/` 写计划，完成后移 `completed/`
+6. **检索排除**：全仓搜索时排除 `_模板/`（骨架镜像）与 `example_world/`（示例世界）——同名文件双份，结果翻倍
 
 ## 完工必检
 
